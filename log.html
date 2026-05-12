@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI動画事業OS セッションログ</title>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="config.js"></script>
+  <style>
+    /* ============================================================
+       CSS Variables
+    ============================================================ */
+    :root {
+      --color-bg: #101011;
+      --color-surface: #171717;
+      --color-surface-2: #1f1f20;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-text: #f5f5f5;
+      --color-text-muted: #888888;
+      --color-primary: #4f98a3;
+      --color-success: #6daa45;
+      --color-error: #dd6974;
+      --color-warning: #f9a826;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ============================================================
+       Base Styles
+    ============================================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+      transition: all var(--transition);
+    }
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       Layout & Header
+    ============================================================ */
+    .app-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .header-actions {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .btn-action:hover {
+      background-color: var(--color-surface);
+      border-color: var(--color-primary);
+    }
+    .btn-action.is-primary {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+    .btn-action.is-primary:hover {
+      opacity: 0.9;
+    }
+    .btn-action.is-danger {
+      color: var(--color-error);
+    }
+    .btn-action.is-danger:hover {
+      border-color: var(--color-error);
+      background-color: rgba(221, 105, 116, 0.1);
+    }
+
+    /* ============================================================
+       Log List
+    ============================================================ */
+    .logs-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8);
+      background-color: var(--color-surface);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-muted);
+    }
+    
+    .log-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .log-header {
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      cursor: pointer;
+    }
+    .log-header:hover {
+      background-color: var(--color-surface-2);
+    }
+    
+    .log-meta-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .log-status {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .status-completed {
+      background-color: rgba(109, 170, 69, 0.15);
+      color: var(--color-success);
+    }
+    .status-aborted {
+      background-color: rgba(249, 168, 38, 0.15);
+      color: var(--color-warning);
+    }
+    
+    .log-title {
+      font-size: 1.125rem;
+      font-weight: bold;
+    }
+    
+    .log-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-1);
+    }
+    .log-tag {
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Log Details (Accordion) */
+    .log-details {
+      display: none;
+      padding: var(--space-4);
+      border-top: 1px solid var(--color-border);
+      background-color: var(--color-surface-2);
+    }
+    .log-card.is-open .log-details {
+      display: block;
+    }
+    .step-log-item {
+      padding: var(--space-3) 0;
+      border-bottom: 1px dashed var(--color-border);
+    }
+    .step-log-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .step-log-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: var(--space-1);
+    }
+    .step-log-time {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+    .step-log-memo {
+      font-size: 0.875rem;
+      color: var(--color-text);
+      white-space: pre-wrap;
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      margin-top: var(--space-1);
+      border-left: 2px solid var(--color-primary);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: var(--space-6);
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      z-index: 300;
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .toast.is-visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="app-container">
+    <header class="header">
+      <div class="header-top">
+        <h1 class="header-title"><i class="ph ph-list-dashes"></i> セッションログ</h1>
+        <a href="index.html" class="btn-action"><i class="ph ph-house"></i> スタート画面</a>
+      </div>
+      <div class="header-actions">
+        <button id="btn-export" class="btn-action is-primary">
+          <i class="ph ph-export"></i> TSVでコピー (スプレッドシート用)
+        </button>
+        <button id="btn-clear" class="btn-action is-danger">
+          <i class="ph ph-trash"></i> ログをクリア
+        </button>
+      </div>
+    </header>
+
+    <main id="logs-container" class="logs-container">
+      <!-- Logs will be rendered here -->
+    </main>
+  </div>
+
+  <div id="toast" class="toast">コピーしました</div>
+
+  <script>
+    // ============================================================
+    // State & Utilities
+    // ============================================================
+    let sessionLogs = [];
+
+    const els = {
+      logsContainer: document.getElementById('logs-container'),
+      btnExport: document.getElementById('btn-export'),
+      btnClear: document.getElementById('btn-clear'),
+      toast: document.getElementById('toast')
+    };
+
+    function formatDate(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function calculateDuration(start, end) {
+      if (!start || !end) return 0;
+      return Math.round((end - start) / 60000); // Minutes
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('is-visible');
+      setTimeout(() => els.toast.classList.remove('is-visible'), 2000);
+    }
+
+    // ============================================================
+    // Load & Render
+    // ============================================================
+    function loadLogs() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
+        sessionLogs = raw ? JSON.parse(raw) : [];
+        // Sort descending by endTime or startTime
+        sessionLogs.sort((a, b) => (b.endTime || b.startTime) - (a.endTime || a.startTime));
+      } catch (e) {
+        console.error("[log] Failed to parse logs:", e);
+        sessionLogs = [];
+      }
+      renderLogs();
+    }
+
+    function renderLogs() {
+      if (sessionLogs.length === 0) {
+        els.logsContainer.innerHTML = `
+          <div class="empty-state">
+            <i class="ph ph-folder-open" style="font-size: 2rem; margin-bottom: 8px;"></i>
+            <p>保存されたログはありません</p>
+          </div>
+        `;
+        return;
+      }
+
+      els.logsContainer.innerHTML = sessionLogs.map((log, index) => {
+        const totalMin = calculateDuration(log.startTime, log.endTime);
+        const statusClass = log.status === 'completed' ? 'status-completed' : 'status-aborted';
+        const statusText = log.status === 'completed' ? '完了' : '途中終了';
+        
+        const mediaLabel = MEDIA_TYPES[log.media] ? MEDIA_TYPES[log.media].label : log.media;
+        const levelLabel = LEVELS[log.level] ? LEVELS[log.level].label : log.level;
+
+        const stepsHtml = (log.steps || []).map(step => {
+          const stepMin = calculateDuration(step.startTime, step.endTime);
+          return `
+            <div class="step-log-item">
+              <div class="step-log-header">
+                <span>${step.stepTitle}</span>
+                <span class="step-log-time">${stepMin}分</span>
+              </div>
+              ${step.memo ? `<div class="step-log-memo">${escapeHtml(step.memo)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="log-card" id="log-${index}">
+            <div class="log-header" onclick="toggleDetails(${index})">
+              <div class="log-meta-top">
+                <span>${formatDate(log.endTime || log.startTime)}</span>
+                <span class="log-status ${statusClass}">${statusText}</span>
+              </div>
+              <div class="log-title">${escapeHtml(log.project)}</div>
+              <div class="log-tags">
+                <span class="log-tag"><i class="ph ph-user"></i> ${escapeHtml(log.user)}</span>
+                <span class="log-tag"><i class="ph ph-monitor"></i> ${mediaLabel}</span>
+                <span class="log-tag"><i class="ph ph-star"></i> ${levelLabel}</span>
+                <span class="log-tag"><i class="ph ph-clock"></i> 計 ${totalMin}分</span>
+              </div>
+            </div>
+            <div class="log-details">
+              ${stepsHtml || '<div style="color:var(--color-text-muted); font-size:0.875rem;">ステップデータがありません</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleDetails(index) {
+      const el = document.getElementById(`log-${index}`);
+      if (el) el.classList.toggle('is-open');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ============================================================
+    // Actions
+    // ============================================================
+    function handleClear() {
+      if (sessionLogs.length === 0) return;
+      if (confirm('すべてのログデータを完全に削除しますか？\n（この操作は元に戻せません）')) {
+        localStorage.removeItem(STORAGE_KEYS.SESSION);
+        sessionLogs = [];
+        renderLogs();
+        showToast('ログをクリアしました');
+      }
+    }
+
+    function handleExportTSV() {
+      if (sessionLogs.length === 0) {
+        alert("エクスポートするデータがありません。");
+        return;
+      }
+
+      // Header: 日時, ステータス, プロジェクト名, 作業者, 媒体, 熟練度, 合計時間(分), メモ
+      const headers = ['完了日時', 'ステータス', 'プロジェクト名', '作業者', '媒体', '熟練度', '合計時間(分)', 'メモ(結合)'];
+      
+      const rows = sessionLogs.map(log => {
+        const totalMin = calculateDuration(log.startTime, log.endTime);
+        const statusText = log.status === 'completed' ? '完了' : '途中終了';
+        const mediaLabel = MEDIA_TYPES[log.media] ? MEDIA_TYPES[log.media].label : log.media;
+        const levelLabel = LEVELS[log.level] ? LEVELS[log.level].label : log.level;
+        
+        // 複数行のメモを結合し、タブ・改行を除去・置換して1セルに収める
+        const allMemos = (log.steps || [])
+          .filter(s => s.memo && s.memo.trim() !== '')
+          .map(s => `[${s.stepTitle}] ${s.memo.trim()}`)
+          .join(' // ')
+          .replace(/\t/g, ' ')
+          .replace(/\n|\r/g, ' ');
+
+        return [
+          formatDate(log.endTime || log.startTime),
+          statusText,
+          log.project,
+          log.user,
+          mediaLabel,
+          levelLabel,
+          totalMin,
+          allMemos
+        ].join('\t');
+      });
+
+      const tsvContent = [headers.join('\t'), ...rows].join('\n');
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(tsvContent).then(() => {
+          showToast("TSVをクリップボードにコピーしました！");
+        }).catch(err => {
+          console.error("[log] Copy failed:", err);
+          fallbackCopyText(tsvContent);
+        });
+      } else {
+        fallbackCopyText(tsvContent);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast("TSVをクリップボードにコピーしました！");
+        } else {
+          alert("コピーに失敗しました。");
+        }
+      } catch (err) {
+        console.error("[log] Fallback copy failed:", err);
+        alert("コピーに失敗しました。");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // ============================================================
+    // Init
+    // ============================================================
+    els.btnClear.addEventListener('click', handleClear);
+    els.btnExport.addEventListener('click', handleExportTSV);
+    
+    loadLogs();
+  </script>
+</body>
+</html>

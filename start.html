@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja" style="overflow-x: hidden;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI動画事業OS スタート画面</title>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="config.js"></script>
+  <style>
+    /* ============================================================
+       CSS Variables
+    ============================================================ */
+    :root {
+      --color-bg: #101011;
+      --color-surface: #171717;
+      --color-surface-2: #1f1f20;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-text: #f5f5f5;
+      --color-text-muted: #888888;
+      --color-primary: #4f98a3;
+      --color-success: #6daa45;
+      --color-error: #dd6974;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ============================================================
+       Base Styles
+    ============================================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      overflow-x: hidden; /* 横揺れ防止 */
+    }
+    input, select, button {
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+      transition: all var(--transition);
+    }
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* ============================================================
+       Layout
+    ============================================================ */
+    .app-container {
+      max-width: 500px;
+      width: 100%; /* 横揺れ防止: 親要素に収める */
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      text-align: center;
+      margin-bottom: var(--space-4);
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .header p {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* ============================================================
+       Form Controls
+    ============================================================ */
+    .form-section {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .form-label {
+      font-weight: bold;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .text-input, .select-input {
+      width: 100%;
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+    }
+    .text-input:focus, .select-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    .step-range-container {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .step-range-container .select-input {
+      min-width: 0; /* flexboxでselectがはみ出るのを防ぐ */
+      flex: 1;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background-color: var(--color-primary);
+      color: #fff;
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* ============================================================
+       Result Area
+    ============================================================ */
+    .result-section {
+      display: none;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-success);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      flex-direction: column;
+      gap: var(--space-4);
+      animation: fadeIn var(--transition);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .result-title {
+      font-weight: bold;
+      color: var(--color-success);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .url-box {
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      word-break: break-all;
+      user-select: all;
+    }
+    .btn-copy {
+      background-color: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+    .btn-copy:hover {
+      background-color: var(--color-surface-2);
+    }
+    .btn-open {
+      background-color: var(--color-success);
+      color: #fff;
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-weight: bold;
+      text-align: center;
+      display: inline-block;
+    }
+    .btn-open:hover {
+      opacity: 0.9;
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       Footer
+    ============================================================ */
+    .footer {
+      text-align: center;
+      margin-top: auto;
+      padding-top: var(--space-6);
+      font-size: 0.875rem;
+    }
+    .footer a {
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-1);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: var(--space-6);
+      left: 50%;
+      transform: translateX(-50%) translateZ(0); /* translateZ(0)でレンダリング分離 */
+      max-width: calc(100vw - 2 * var(--space-4)); /* 画面幅を超えない */
+      white-space: nowrap;
+      background-color: var(--color-surface-2);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      z-index: 300;
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+    }
+    .toast.is-visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <h1>AI動画事業OS</h1>
+      <p>新しいセッションのURLを生成します</p>
+    </header>
+
+    <div class="form-section">
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-user"></i> 作業者名</label>
+        <input type="text" id="input-user" class="text-input" placeholder="例: Aさん" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-folder"></i> プロジェクト名</label>
+        <input type="text" id="input-project" class="text-input" placeholder="例: instagram運用" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-instagram-logo"></i> 媒体</label>
+        <select id="select-media" class="select-input"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-star"></i> 熟練度</label>
+        <select id="select-level" class="select-input"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-list-numbers"></i> STEP範囲</label>
+        <div class="step-range-container">
+          <select id="select-step-start" class="select-input"></select>
+          <span>〜</span>
+          <select id="select-step-end" class="select-input"></select>
+        </div>
+      </div>
+
+      <button id="generate-btn" class="btn-primary">
+        <i class="ph ph-link"></i> URLを生成する
+      </button>
+    </div>
+
+    <div id="result-section" class="result-section">
+      <div class="result-title"><i class="ph ph-check-circle"></i> URLを生成しました</div>
+      <div id="url-box" class="url-box"></div>
+      <button id="copy-btn" class="btn-copy">
+        <i class="ph ph-copy"></i> URLをコピー
+      </button>
+      <a href="#" id="open-link" class="btn-open" target="_blank">このURLで作業を開始する</a>
+    </div>
+
+    <footer class="footer">
+      <a href="index.html"><i class="ph ph-house"></i> ホームに戻る</a>
+      <a href="admin.html"><i class="ph ph-gear"></i> 管理画面（設計者用）</a>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast">コピーしました</div>
+
+  <script>
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const els = {
+      inputUser: document.getElementById('input-user'),
+      inputProject: document.getElementById('input-project'),
+      selectMedia: document.getElementById('select-media'),
+      selectLevel: document.getElementById('select-level'),
+      selectStepStart: document.getElementById('select-step-start'),
+      selectStepEnd: document.getElementById('select-step-end'),
+      generateBtn: document.getElementById('generate-btn'),
+      resultSection: document.getElementById('result-section'),
+      urlBox: document.getElementById('url-box'),
+      copyBtn: document.getElementById('copy-btn'),
+      openLink: document.getElementById('open-link'),
+      toast: document.getElementById('toast')
+    };
+
+    // ============================================================
+    // Render Functions (DOM Manipulation)
+    // ============================================================
+    function renderOptions() {
+      // 媒体
+      els.selectMedia.innerHTML = Object.entries(MEDIA_TYPES).map(([key, data]) => 
+        `<option value="${key}">${data.label}</option>`
+      ).join('');
+
+      // 熟練度
+      els.selectLevel.innerHTML = Object.entries(LEVELS).map(([key, data]) => 
+        `<option value="${key}">${data.label}</option>`
+      ).join('');
+
+      // STEP範囲
+      const stepOptions = STEPS.map(step => 
+        `<option value="${step.id}">${step.id}: ${step.title}</option>`
+      ).join('');
+      els.selectStepStart.innerHTML = stepOptions;
+      els.selectStepEnd.innerHTML = stepOptions;
+
+      // 初期値として最後のSTEPを選択
+      if (STEPS.length > 0) {
+        els.selectStepEnd.value = STEPS[STEPS.length - 1].id;
+      }
+    }
+
+    function showResult(url) {
+      els.urlBox.textContent = url;
+      els.openLink.href = url;
+      els.resultSection.style.display = 'flex';
+      
+      // スムーズスクロールで結果エリアを表示
+      setTimeout(() => {
+        els.resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('is-visible');
+      setTimeout(() => {
+        els.toast.classList.remove('is-visible');
+      }, 2000);
+    }
+
+    // ============================================================
+    // Logic Functions
+    // ============================================================
+    function generateUrl() {
+      const user = els.inputUser.value.trim();
+      const project = els.inputProject.value.trim();
+      const media = els.selectMedia.value;
+      const level = els.selectLevel.value;
+      const startId = parseInt(els.selectStepStart.value, 10);
+      const endId = parseInt(els.selectStepEnd.value, 10);
+
+      if (!user) {
+        alert("作業者名を入力してください");
+        return null;
+      }
+      if (!project) {
+        alert("プロジェクト名を入力してください");
+        return null;
+      }
+      if (startId > endId) {
+        alert("STEP範囲が不正です（開始が終了より後になっています）");
+        return null;
+      }
+
+      const params = new URLSearchParams({
+        user,
+        project,
+        media,
+        level,
+        steps: `${startId}-${endId}`
+      });
+
+      // 現在のURLからディレクトリパスを取得して付与（ローカルファイル動作対応）
+      let baseUrl = window.location.href.split('?')[0];
+      baseUrl = baseUrl.replace('index.html', '');
+      baseUrl = baseUrl.replace('start.html', '');
+
+      const fullUrl = `${baseUrl}wizard.html?${params.toString()}`;
+      
+      console.log("[index] URL params generated:", fullUrl);
+      return fullUrl;
+    }
+
+    function onGenerateClick() {
+      const url = generateUrl();
+      if (url) {
+        showResult(url);
+      }
+    }
+
+    function onCopyClick() {
+      const url = els.urlBox.textContent;
+      if (!url) return;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(() => {
+          showToast("URLをコピーしました！");
+          console.log("[index] URL copied to clipboard");
+        }).catch(err => {
+          console.error("[index] Copy failed:", err);
+          fallbackCopyTextToClipboard(url);
+        });
+      } else {
+        fallbackCopyTextToClipboard(url);
+      }
+    }
+    
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      
+      // スクロールを防ぐための配置
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast("URLをコピーしました！");
+          console.log("[index] URL copied to clipboard (fallback)");
+        } else {
+          console.error("[index] Copy failed (fallback)");
+          alert("コピーに失敗しました。手動でコピーしてください。");
+        }
+      } catch (err) {
+        console.error("[index] Copy failed (fallback):", err);
+        alert("コピーに失敗しました。手動でコピーしてください。");
+      }
+
+      document.body.removeChild(textArea);
+    }
+
+    function onStepStartChange() {
+      const startId = parseInt(els.selectStepStart.value, 10);
+      const endId = parseInt(els.selectStepEnd.value, 10);
+      if (startId > endId) {
+        els.selectStepEnd.value = startId;
+      }
+    }
+
+    // ============================================================
+    // Initialization
+    // ============================================================
+    function initIndex() {
+      console.log("[index] initializing...");
+      renderOptions();
+      
+      els.generateBtn.addEventListener('click', onGenerateClick);
+      els.copyBtn.addEventListener('click', onCopyClick);
+      els.selectStepStart.addEventListener('change', onStepStartChange);
+    }
+
+    initIndex();
+  </script>
+</body>
+</html>

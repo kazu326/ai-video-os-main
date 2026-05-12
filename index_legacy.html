@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI動画事業OS 実務マニュアル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js">
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --color-bg: #101011;
+  --color-surface: #171717;
+  --color-surface-2: #1d1d1f;
+  --color-surface-offset: #242426;
+  --color-border: rgba(255,255,255,0.07);
+  --color-divider: rgba(255,255,255,0.05);
+  --color-text: #e8e8ec;
+  --color-text-muted: #8a8a96;
+  --color-text-faint: #4a4a56;
+
+  /* Part colors — match mindmap */
+  --c01: #8B5CF6; --c01-dim: rgba(139,92,246,0.12);
+  --c02: #3B82F6; --c02-dim: rgba(59,130,246,0.12);
+  --c03: #06B6D4; --c03-dim: rgba(6,182,212,0.12);
+  --c04: #22C55E; --c04-dim: rgba(34,197,94,0.12);
+  --c05: #F97316; --c05-dim: rgba(249,115,22,0.12);
+  --c06: #94A3B8; --c06-dim: rgba(148,163,184,0.12);
+
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+  --text-2xl: clamp(2rem, 1.2rem + 2.5vw, 3rem);
+
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+  --space-4: 1rem; --space-6: 1.5rem; --space-8: 2rem;
+  --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
+
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 20px;
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.22);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,0.32);
+  --transition: 180ms cubic-bezier(0.16,1,0.3,1);
+
+  --sidebar-width: 260px;
+}
+
+/* ===== BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.7;
+  font-size: var(--text-base);
+  display: flex;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; }
+button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--c03); outline-offset: 3px; border-radius: var(--radius-sm); }
+
+/* ===== LAYOUT ===== */
+#sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform var(--transition);
+}
+#main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar-header {
+  padding: var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(255,255,255,0.10), rgba(139,92,246,0.22));
+  border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.logo-text { font-size: var(--text-sm); font-weight: 700; letter-spacing: -0.02em; }
+.logo-sub { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+
+.sidebar-nav { padding: var(--space-4) 0; flex: 1; }
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-faint);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 10px var(--space-4);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  font-size: var(--text-sm);
+  position: relative;
+  color: var(--color-text-muted);
+  border-left: 3px solid transparent;
+}
+.nav-item:hover { background: var(--color-surface-2); color: var(--color-text); }
+.nav-item.active {
+  color: var(--color-text);
+  background: var(--color-surface-offset);
+}
+.nav-item .nav-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.nav-item span.label { flex: 1; }
+.nav-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  font-weight: 600;
+  background: var(--color-surface-offset);
+}
+
+/* ===== TOP BAR ===== */
+#topbar {
+  height: 56px;
+  background: rgba(13,13,15,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-8);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-muted); }
+.topbar-actions { display: flex; align-items: center; gap: var(--space-3); }
+.topbar-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  transition: all var(--transition);
+}
+.topbar-btn:hover { background: var(--color-surface-offset); }
+.topbar-btn.primary {
+  background: #e8e8ec; color: #101011;
+  border-color: #e8e8ec;
+}
+.topbar-btn.primary:hover { opacity: 0.85; }
+
+/* ===== PAGE SECTIONS ===== */
+.page-section { display: none; }
+.page-section.active { display: block; }
+
+/* ===== CONTENT AREA ===== */
+.content-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-8);
+}
+
+/* ===== PAGE HERO ===== */
+.page-hero {
+  padding: var(--space-10) var(--space-8) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-xs); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+.hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; }
+.page-hero h1 {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: var(--space-3);
+}
+.page-hero p {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  max-width: 60ch;
+  line-height: 1.7;
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+.card-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+  display: flex; align-items: center; gap: var(--space-2);
+}
+
+/* ===== CHECKLIST ===== */
+.checklist { list-style: none; }
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.checklist-item:last-child { border-bottom: none; }
+.check-box {
+  width: 20px; height: 20px; min-width: 20px;
+  border: 2px solid var(--color-border);
+  border-radius: 5px;
+  margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+  background: transparent;
+}
+.checklist-item.done .check-box {
+  background: var(--c04);
+  border-color: var(--c04);
+}
+.checklist-item.done .check-box::after {
+  content: '✓';
+  font-size: 11px;
+  color: #0d0d0f;
+  font-weight: 900;
+}
+.checklist-item.done .check-text {
+  text-decoration: line-through;
+  color: var(--color-text-faint);
+}
+.check-text { flex: 1; font-size: var(--text-sm); line-height: 1.5; }
+.check-sub { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 3px; }
+.check-tag {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ===== FLOW STEPS ===== */
+.flow-steps { display: flex; flex-direction: column; gap: var(--space-2); }
+.flow-step {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  position: relative;
+  transition: all var(--transition);
+}
+.flow-step:hover {
+  border-color: rgba(255,255,255,0.15);
+  background: var(--color-surface-offset);
+}
+.flow-step::before {
+  content: '';
+  position: absolute;
+  left: -1px; top: -1px; bottom: -1px; width: 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.step-num {
+  width: 32px; height: 32px; min-width: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-xs); font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--color-surface-offset);
+}
+.step-content { flex: 1; }
+.step-title { font-size: var(--text-sm); font-weight: 700; margin-bottom: 4px; }
+.step-desc { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.6; }
+.step-tools {
+  display: flex; flex-wrap: wrap; gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.tool-badge {
+  font-size: 10px; font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+}
+
+/* ===== ANALYSIS TREE ===== */
+.analysis-tree { padding: var(--space-2) 0; }
+.tree-node {
+  margin-bottom: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  position: relative;
+}
+.tree-node-q {
+  font-size: var(--text-sm); font-weight: 700;
+  margin-bottom: var(--space-2);
+  color: var(--c03);
+}
+.tree-branches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.tree-branch {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+}
+.tree-branch .branch-label {
+  font-weight: 700; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.tree-branch .branch-action {
+  line-height: 1.6; color: var(--color-text-muted);
+}
+
+/* ===== PROMPT CARDS ===== */
+.prompt-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+.prompt-header {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--color-surface-offset);
+}
+.prompt-label { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.copy-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition);
+}
+.copy-btn:hover { background: var(--color-surface-offset); }
+.copy-btn.copied { background: var(--c04); border-color: var(--c04); color: #0d0d0f; }
+.prompt-body {
+  padding: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+.prompt-body .ph { color: var(--c03); }
+.prompt-body .kw { color: var(--c01); }
+
+/* ===== GRID LAYOUTS ===== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+.metric-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+.metric-icon { font-size: 24px; margin-bottom: var(--space-2); }
+.metric-title { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin-bottom: var(--space-1); }
+.metric-value { font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; font-family: var(--font-mono); }
+.metric-desc { font-size: var(--text-xs); color: var(--color-text-faint); margin-top: var(--space-1); }
+
+/* ===== PHASE BADGE ===== */
+.phase-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--text-xs); font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.phase-short { background: rgba(139,92,246,0.15); color: var(--c01); }
+.phase-mid { background: rgba(59,130,246,0.15); color: var(--c02); }
+.phase-long { background: rgba(34,197,94,0.15); color: var(--c04); }
+
+/* ===== SECTION HEADING ===== */
+.section-h {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.section-h .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== TABLE ===== */
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.data-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-faint);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 12px var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: top;
+  line-height: 1.6;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--color-surface-2); }
+
+/* ===== AI RATING ===== */
+.ai-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: all var(--transition);
+}
+.ai-card:hover { border-color: rgba(255,255,255,0.15); }
+.ai-name { font-size: var(--text-base); font-weight: 900; letter-spacing: -0.02em; margin-bottom: var(--space-2); }
+.ai-role { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-3); }
+.rating-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: 6px; }
+.rating-label { font-size: 11px; color: var(--color-text-muted); width: 80px; flex-shrink: 0; }
+.rating-bar { flex: 1; height: 4px; background: var(--color-surface-offset); border-radius: 9999px; overflow: hidden; }
+.rating-fill { height: 100%; border-radius: 9999px; }
+
+/* ===== SOP BOX ===== */
+.sop-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+.sop-head {
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-5);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.sop-head-title { font-size: var(--text-sm); font-weight: 700; }
+.sop-body { padding: var(--space-5); }
+.sop-steps { list-style: none; counter-reset: sop-counter; }
+.sop-steps li {
+  counter-increment: sop-counter;
+  display: flex; gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: var(--text-sm);
+}
+.sop-steps li:last-child { border-bottom: none; }
+.sop-steps li::before {
+  content: counter(sop-counter);
+  min-width: 24px; height: 24px;
+  background: var(--color-surface-offset);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  font-family: var(--font-mono);
+  flex-shrink: 0; margin-top: 1px;
+}
+.sop-note {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(6,182,212,0.06);
+  border: 1px solid rgba(6,182,212,0.2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--c03);
+  line-height: 1.7;
+}
+
+/* ===== SPREADSHEET GUIDE ===== */
+.ss-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); font-family: var(--font-mono); }
+.ss-table th {
+  background: var(--color-surface-offset);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+.ss-table td {
+  padding: 7px 12px;
+  border: 1px solid var(--color-divider);
+  vertical-align: middle;
+  line-height: 1.5;
+  text-align: left;
+}
+.ss-table tr:nth-child(even) td { background: var(--color-surface-2); }
+.ss-col-type {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ===== WARNING / INFO BLOCKS ===== */
+.info-block {
+  display: flex; gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+.info-icon { font-size: 18px; flex-shrink: 0; line-height: 1.7; }
+.info-warn { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); }
+.info-tip { background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.2); }
+.info-danger { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); }
+
+
+/* ===== ACTION-FIRST OS SHELL ===== */
+.os-cockpit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+.today-panel,
+.focus-panel,
+.sop-focus-note {
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+.today-panel { padding: var(--space-6); }
+.panel-kicker {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+}
+.action-stack { display: grid; gap: var(--space-3); }
+.action-card {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4);
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.action-index {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(139,92,246,0.12);
+  color: #c4b5fd;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+.action-title { font-size: var(--text-sm); font-weight: 700; line-height: 1.45; }
+.action-meta { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+.action-cta {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.focus-panel { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.focus-state {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--color-border);
+}
+.focus-state strong { display: block; font-size: var(--text-sm); margin-bottom: 4px; }
+.focus-state span { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.65; }
+.quiet-progress { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-xs); color: var(--color-text-muted); }
+.quiet-progress .progress-bar { flex: 1; margin: 0; }
+.disclosure-card { padding: 0; overflow: hidden; }
+.disclosure-card summary {
+  list-style: none;
+  padding: var(--space-4) var(--space-5);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.disclosure-card summary::-webkit-details-marker { display: none; }
+.disclosure-card summary::after { content: '+'; color: var(--color-text-muted); font-family: var(--font-mono); }
+.disclosure-card[open] summary::after { content: '−'; }
+.disclosure-body { padding: 0 var(--space-5) var(--space-5); color: var(--color-text-muted); font-size: var(--text-sm); }
+.sop-focus-note { padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); }
+.sop-focus-note strong { display: block; font-size: var(--text-sm); margin-bottom: 4px; }
+.sop-focus-note span { color: var(--color-text-muted); font-size: var(--text-xs); }
+.flow-step { cursor: pointer; }
+.flow-step:not(.current-step) .step-desc,
+.flow-step:not(.current-step) .step-tools { display: none; }
+.flow-step.current-step,
+.checklist-item.current-step {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: var(--shadow-md);
+}
+.flow-step.done-step { opacity: 0.62; }
+.flow-step.done-step .step-title { text-decoration: line-through; color: var(--color-text-muted); }
+.step-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+.mini-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+body.focus-mode #sidebar,
+body.focus-mode #topbar,
+body.focus-mode .page-hero,
+body.focus-mode .nav-noise,
+body.focus-mode .section-h:not(.focus-keep),
+body.focus-mode #sidebar-toggle { display: none; }
+body.focus-mode #main-content { margin-left: 0; }
+body.focus-mode .content-wrap { max-width: 760px; padding-top: var(--space-8); }
+body.focus-mode .os-cockpit { grid-template-columns: 1fr; }
+body.focus-mode .focus-panel { order: -1; border-color: rgba(255,255,255,0.18); }
+body.focus-mode .card:not(.focus-keep),
+body.focus-mode .sop-block:not(.focus-keep),
+body.focus-mode .prompt-card:not(.focus-keep),
+body.focus-mode .metric-card:not(.focus-keep),
+body.focus-mode .data-table:not(.focus-keep),
+body.focus-mode .divider { display: none; }
+body.focus-mode #focus-toggle-inline { background: #e8e8ec; color: #101011; }
+.mobile-action-bar { display: none; }
+@media (max-width: 900px) {
+  .os-cockpit { grid-template-columns: 1fr; }
+}
+
+/* ===== DIVIDER ===== */
+.divider { border: none; border-top: 1px solid var(--color-border); margin: var(--space-8) 0; }
+
+/* ===== MOBILE TOGGLE ===== */
+#sidebar-toggle {
+  display: none;
+  position: fixed; top: 10px; left: 10px; z-index: 200;
+  width: 40px; height: 40px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  align-items: center; justify-content: center;
+  font-size: 18px;
+}
+#overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 90;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar {
+  height: 3px;
+  background: var(--color-surface-offset);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: var(--space-2) 0;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  #main-content { margin-left: 0; }
+  #sidebar-toggle { display: flex; }
+  #overlay.show { display: block; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .tree-branches { grid-template-columns: 1fr; }
+  .content-wrap { padding: var(--space-6) var(--space-4); }
+  .page-hero { padding: var(--space-6) var(--space-4) var(--space-4); }
+  .action-card { grid-template-columns: 30px 1fr; }
+  .action-cta { grid-column: 2; justify-self: start; }
+  .topbar-actions .topbar-btn:not(.primary) { display: none; }
+  .mobile-action-bar {
+    display: flex; position: fixed; left: var(--space-3); right: var(--space-3); bottom: var(--space-3);
+    z-index: 80; gap: var(--space-2); padding: var(--space-2);
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+    background: rgba(23,23,23,0.92); backdrop-filter: blur(12px);
+  }
+  .mobile-action-bar button { flex: 1; padding: 10px; border-radius: var(--radius-md); background: var(--color-surface-2); font-size: var(--text-xs); font-weight: 700; }
+}
+
+</style>
+</head>
+<body>
+
+<button id="sidebar-toggle" onclick="toggleSidebar()" aria-label="サイドバー開閉">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar" role="navigation" aria-label="メインナビゲーション">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🎬</div>
+      <div>
+        <div class="logo-text">AI動画事業OS</div>
+        <div class="logo-sub">実務マニュアル</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">毎日使う</div>
+    <div class="nav-item active" onclick="showPage('checklist')" id="nav-checklist">
+      <div class="nav-dot" style="background:#8B5CF6"></div>
+      <span class="label">📋 日次・週次チェックリスト</span>
+    </div>
+    <div class="nav-item" onclick="showPage('video-flow')" id="nav-video-flow">
+      <div class="nav-dot" style="background:#06B6D4"></div>
+      <span class="label">🎬 動画制作フロー（SOP）</span>
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">分析・改善</div>
+    <div class="nav-item" onclick="showPage('analysis')" id="nav-analysis">
+      <div class="nav-dot" style="background:#22C55E"></div>
+      <span class="label">📊 分析手順書</span>
+    </div>
+    <div class="nav-item" onclick="showPage('decision-tree')" id="nav-decision-tree">
+      <div class="nav-dot" style="background:#22C55E"></div>
+      <span class="label">🌳 改善思考ツリー</span>
+    </div>
+    <div class="nav-item" onclick="showPage('spreadsheet')" id="nav-spreadsheet">
+      <div class="nav-dot" style="background:#22C55E"></div>
+      <span class="label">📑 スプレッドシート設計</span>
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">AI活用</div>
+    <div class="nav-item" onclick="showPage('ai-guide')" id="nav-ai-guide">
+      <div class="nav-dot" style="background:#F97316"></div>
+      <span class="label">🤖 AI使い分けガイド</span>
+    </div>
+    <div class="nav-item" onclick="showPage('prompts')" id="nav-prompts">
+      <div class="nav-dot" style="background:#F97316"></div>
+      <span class="label">💬 プロンプト集</span>
+    </div>
+    <div class="nav-item" onclick="showPage('ai-judgment')" id="nav-ai-judgment">
+      <div class="nav-dot" style="background:#F97316"></div>
+      <span class="label">⚖️ AI回答の判断基準</span>
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">教育・引継ぎ</div>
+    <div class="nav-item" onclick="showPage('roadmap-guide')" id="nav-roadmap-guide">
+      <div class="nav-dot" style="background:#3B82F6"></div>
+      <span class="label">🗺️ フェーズ別使い方</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main-content">
+  <div id="topbar">
+    <span class="topbar-title" id="page-title-bar">日次・週次チェックリスト</span>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="resetChecks()">リセット</button>
+      <button class="topbar-btn" onclick="toggleFocusMode()" id="focus-toggle-top">Focus Mode</button>
+      <button class="topbar-btn primary" onclick="printPage()">🖨️ 印刷</button>
+    </div>
+  </div>
+
+  <!-- ========== PAGE: CHECKLIST ========== -->
+  <div class="page-section active" id="page-checklist">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#8B5CF6"></span>
+        毎日使う実務ツール
+      </div>
+      <h1>日次・週次<br>チェックリスト</h1>
+      <p>投稿前・投稿後・分析まで、抜け漏れなく回すための作業確認リスト。クリックでチェックできます。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="os-cockpit focus-keep">
+        <section class="today-panel focus-keep" aria-labelledby="today-actions-title">
+          <div class="panel-kicker">
+            <span id="today-actions-title">Today / Max 3 Actions</span>
+            <span id="today-progress-label">0%</span>
+          </div>
+          <div class="action-stack" id="next-actions" aria-live="polite"></div>
+          <div class="quiet-progress" aria-label="日次チェックの進捗">
+            <span>進捗</span>
+            <div class="progress-bar"><div class="progress-fill" id="today-progress-fill" style="width:0%;background:#8B5CF6"></div></div>
+          </div>
+        </section>
+
+        <aside class="focus-panel focus-keep" aria-label="Focus Mode">
+          <div class="panel-kicker"><span>Focus Mode</span><span>迷ったらここだけ</span></div>
+          <div class="focus-state">
+            <strong id="focus-current-title">次の1手を選んでください</strong>
+            <span id="focus-current-desc">上の3アクションから1つだけ実行。終わったらチェックして次へ進みます。</span>
+          </div>
+          <button class="topbar-btn primary" id="focus-toggle-inline" onclick="toggleFocusMode()">集中表示に切り替える</button>
+        </aside>
+      </div>
+
+      <details class="card disclosure-card focus-keep" open>
+        <summary>日次チェックリストを開く</summary>
+        <div class="disclosure-body">投稿前・投稿後・分析の順に、終わったものをクリックして消していきます。次にやることは常に上の3件だけです。</div>
+      </details>
+
+      <!-- 日次 投稿前 -->
+      <div class="section-h focus-keep">
+        <span class="dot" style="background:#8B5CF6"></span>
+        📅 日次チェック｜投稿前（制作）
+      </div>
+      <div class="card focus-keep">
+        <div class="card-title">🎯 ゴール確認・台本準備</div>
+        <ul class="checklist" id="cl-pre">
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              今日の投稿テーマ・ゴールを確認した
+              <div class="check-sub">収益型／集客型／ブランド型 — どれか1つに絞る</div>
+            </div>
+            <span class="check-tag" style="background:rgba(139,92,246,0.15);color:#8B5CF6">設計</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              GEMs/GPTsで台本を生成した
+              <div class="check-sub">フレームワーク（SWRS/PREP/PASONA）を指定してから生成</div>
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              フック（冒頭3秒）を最低3パターン作った
+              <div class="check-sub">逆張り・損失回避・数字 のいずれかを含む</div>
+            </div>
+            <span class="check-tag" style="background:rgba(6,182,212,0.15);color:#06B6D4">制作</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              台本をAIに添削させた（批判分析モード）
+              <div class="check-sub">「この台本の弱点を3つ指摘して」でAIに依頼</div>
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              スタート画像を生成した
+              <div class="check-sub">世界観・キャラクター・色調を統一</div>
+            </div>
+            <span class="check-tag" style="background:rgba(6,182,212,0.15);color:#06B6D4">制作</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              動画プロンプトとセリフを分離した
+              <div class="check-sub">映像指示とナレーション指示を別ファイルで管理</div>
+            </div>
+            <span class="check-tag" style="background:rgba(6,182,212,0.15);color:#06B6D4">制作</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              動画を生成した（ツール：Seedance2 / Kling / Runway）
+              <div class="check-sub">0〜3ヶ月：Grok移行 → Kling or Runway → Seedance2に移行</div>
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              音声（セリフ）をFishAudioで生成した（必要な場合）
+              <div class="check-sub">不要な場合はスキップ可</div>
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              編集した（CapCut / ブリュー / Canva）
+              <div class="check-sub">テンプレを使用 → 毎回1から作らない</div>
+            </div>
+            <span class="check-tag" style="background:rgba(6,182,212,0.15);color:#06B6D4">制作</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              CTA（行動喚起）が明確に入っているか確認した
+              <div class="check-sub">保存誘導 / コメント誘導 / LINE誘導 — 1つに絞る</div>
+            </div>
+            <span class="check-tag" style="background:rgba(139,92,246,0.15);color:#8B5CF6">設計</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              ブランドチェック：世界観・統一感に違和感がないか確認した
+              <div class="check-sub">ペルソナ・キャラ・色調・テンポが揃っているか</div>
+            </div>
+            <span class="check-tag" style="background:rgba(59,130,246,0.15);color:#3B82F6">確認</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              スプレッドシートに投稿前データを記録した
+              <div class="check-sub">タイトル・フック・CTA・使用フレームワーク・タグ</div>
+            </div>
+            <span class="check-tag" style="background:rgba(34,197,94,0.15);color:#22C55E">記録</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 日次 投稿直後 -->
+      <div class="section-h" style="margin-top:32px">
+        <span class="dot" style="background:#3B82F6"></span>
+        ⚡ 日次チェック｜投稿直後（30分以内）
+      </div>
+      <div class="card">
+        <ul class="checklist" id="cl-post">
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              投稿した（プラットフォーム選択・最適化設定完了）
+              <div class="check-sub">サムネ・キャプション・ハッシュタグ・投稿時間を確認</div>
+            </div>
+            <span class="check-tag" style="background:rgba(59,130,246,0.15);color:#3B82F6">投稿</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              初動確認（30分後）：再生数・いいね・コメントを記録した
+              <div class="check-sub">スプレッドシートの「投稿直後」列に入力</div>
+            </div>
+            <span class="check-tag" style="background:rgba(34,197,94,0.15);color:#22C55E">記録</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              コメントに返信した（エンゲージメント強化）
+            </div>
+            <span class="check-tag" style="background:rgba(59,130,246,0.15);color:#3B82F6">運用</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 週次 -->
+      <div class="section-h" style="margin-top:32px">
+        <span class="dot" style="background:#22C55E"></span>
+        📆 週次チェック｜分析・改善（週1回）
+      </div>
+      <div class="card">
+        <ul class="checklist" id="cl-weekly">
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              スプレッドシートの週次データをCSVでエクスポートした
+              <div class="check-sub">全投稿分のデータを揃える</div>
+            </div>
+            <span class="check-tag" style="background:rgba(34,197,94,0.15);color:#22C55E">分析</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              CSVをAI（Claude / ChatGPT / Gemini）に読み込ませて上位下位比較を実施した
+              <div class="check-sub">「上位3本と下位3本の差分を構造的に分析して」</div>
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              勝ちパターンDBを更新した（フック・CTA・構成）
+              <div class="check-sub">今週有効だったパターンを1つ以上DB化</div>
+            </div>
+            <span class="check-tag" style="background:rgba(34,197,94,0.15);color:#22C55E">DB</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              次週の改善ポイントを1〜3個に絞った（改善ループ）
+              <div class="check-sub">「次週はフックのパターンを変える」など具体的に</div>
+            </div>
+            <span class="check-tag" style="background:rgba(139,92,246,0.15);color:#8B5CF6">設計</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              テンプレート・プロンプトを更新した（学習した改善を反映）
+            </div>
+            <span class="check-tag" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              KPI確認：再生数推移・エンゲージメント率・フォロワー増減を記録した
+              <div class="check-sub">フロー指標：再生数・リスト数・回転率 / ストック指標：LTV・継続率</div>
+            </div>
+            <span class="check-tag" style="background:rgba(34,197,94,0.15);color:#22C55E">KPI</span>
+          </li>
+          <li class="checklist-item" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-text">
+              導線機能（LINE・CTAリンク）の動作確認をした
+            </div>
+            <span class="check-tag" style="background:rgba(59,130,246,0.15);color:#3B82F6">確認</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="info-block info-tip">
+        <span class="info-icon">💡</span>
+        <div><strong>ポイント：</strong>チェックリストはテンプレとして使いまわす。毎回1から考えない。週次で「このチェックは不要」「この項目を追加」と育てていくのが正解。</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: VIDEO FLOW ========== -->
+  <div class="page-section" id="page-video-flow">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#06B6D4"></span>
+        PART3｜AI動画制作編
+      </div>
+      <h1>動画制作フロー<br>SOP（標準作業手順書）</h1>
+      <p>台本生成から完成・投稿まで、誰が見ても同じ品質で実行できるよう手順を標準化したものです。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h">
+        <span class="dot" style="background:#06B6D4"></span>
+        🎬 10ステップ 動画制作SOP
+      </div>
+
+      <div class="sop-focus-note focus-keep"><strong>動画制作SOP 10ステップ</strong><span>現在ステップだけ詳細表示。次の詳細はクリックした時だけ開きます。</span></div>
+
+      <div class="flow-steps focus-keep" id="video-flow-steps">
+
+        <div class="flow-step" style="--step-color:#8B5CF6">
+          <style>.flow-step:nth-child(1)::before{background:var(--c01)}</style>
+          <div class="step-num" style="background:rgba(139,92,246,0.15);color:#8B5CF6">01</div>
+          <div class="step-content">
+            <div class="step-title">台本生成</div>
+            <div class="step-desc">目的別フレームワークを選択し、GEMs/GPTsで台本を生成する。フック・本編・CTAの3部構成を必ず含める。目的は1つに絞ること（集客OR販売OR認知）。</div>
+            <div class="step-tools">
+              <span class="tool-badge">GEMs（Gemini）</span>
+              <span class="tool-badge">GPTs（ChatGPT）</span>
+              <span class="tool-badge">Claude</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            <span class="phase-badge phase-short">初期〜</span>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(139,92,246,0.15);color:#8B5CF6">02</div>
+          <div class="step-content">
+            <div class="step-title">台本添削（批判分析）</div>
+            <div class="step-desc">生成した台本をAIに批判分析させる。「この台本の弱点を3つ指摘して、改善案も提示して」と依頼。感情的にならず、構造の問題として捉える。</div>
+            <div class="step-tools">
+              <span class="tool-badge">Claude（批判に強い）</span>
+              <span class="tool-badge">GPT-4o</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(6,182,212,0.15);color:#06B6D4">03</div>
+          <div class="step-content">
+            <div class="step-title">スタート画像生成</div>
+            <div class="step-desc">冒頭フレームとなるスタート画像を生成。世界観・キャラクター・色調を統一すること。画像のクオリティが動画全体の印象を決める。</div>
+            <div class="step-tools">
+              <span class="tool-badge">Midjourney</span>
+              <span class="tool-badge">DALL-E 3</span>
+              <span class="tool-badge">Ideogram</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(6,182,212,0.15);color:#06B6D4">04</div>
+          <div class="step-content">
+            <div class="step-title">動画プロンプト・セリフを分離</div>
+            <div class="step-desc">映像生成用プロンプト（カメラワーク・動き・雰囲気）とセリフナレーション（テキスト）を別々に管理する。混在させると修正が困難になる。</div>
+            <div class="step-tools">
+              <span class="tool-badge">Notion / スプレッドシート</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(6,182,212,0.15);color:#06B6D4">05</div>
+          <div class="step-content">
+            <div class="step-title">動画生成</div>
+            <div class="step-desc">フェーズに応じてツールを選択。コストと品質のバランスで判断する。</div>
+            <div class="step-tools">
+              <span class="tool-badge" style="border-color:rgba(139,92,246,0.4);color:#8B5CF6">0〜3ヶ月: Grok移行</span>
+              <span class="tool-badge" style="border-color:rgba(6,182,212,0.4);color:#06B6D4">Kling</span>
+              <span class="tool-badge" style="border-color:rgba(6,182,212,0.4);color:#06B6D4">Runway</span>
+              <span class="tool-badge" style="border-color:rgba(34,197,94,0.4);color:#22C55E">Seedance2（コスパ◎）</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(249,115,22,0.15);color:#F97316">06</div>
+          <div class="step-content">
+            <div class="step-title">セリフ音声生成（必要な場合）</div>
+            <div class="step-desc">ナレーションが必要な場合のみFishAudioで生成。不要なら省略。AIボイスの自然さと速度に注意。字幕テロップで代替する場合はスキップ。</div>
+            <div class="step-tools">
+              <span class="tool-badge">FishAudio</span>
+              <span class="tool-badge">ElevenLabs（代替）</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(6,182,212,0.15);color:#06B6D4">07</div>
+          <div class="step-content">
+            <div class="step-title">編集</div>
+            <div class="step-desc">テンプレートを使用して編集。毎回1から作らない。テンポ・字幕・BGM・CTA位置を統一する。</div>
+            <div class="step-tools">
+              <span class="tool-badge">CapCut（推奨）</span>
+              <span class="tool-badge">ブリュー</span>
+              <span class="tool-badge">Canva</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(59,130,246,0.15);color:#3B82F6">08</div>
+          <div class="step-content">
+            <div class="step-title">投稿前整合性チェック</div>
+            <div class="step-desc">内容確認・表現確認・ブランドチェックの3点を必ず実施。スプレッドシートに投稿前データを記録してから投稿する。</div>
+            <div class="step-tools">
+              <span class="tool-badge">チェックリスト参照</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(34,197,94,0.15);color:#22C55E">09</div>
+          <div class="step-content">
+            <div class="step-title">評価分析・AIによる添削</div>
+            <div class="step-desc">投稿後のデータをもとにAIで評価。「この動画のスコアを10点満点で評価し、改善案を提示して」。感覚ではなく数値で評価する。</div>
+            <div class="step-tools">
+              <span class="tool-badge">ChatGPT / Claude</span>
+              <span class="tool-badge">スプレッドシートCSV</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num" style="background:rgba(34,197,94,0.15);color:#22C55E">10</div>
+          <div class="step-content">
+            <div class="step-title">完成・テンプレ更新</div>
+            <div class="step-desc">良かったパターンを勝ちパターンDBに記録し、テンプレートを更新。次回の制作に活かす。これが「資産化」の実体。</div>
+            <div class="step-tools">
+              <span class="tool-badge">勝ちパターンDB</span>
+              <span class="tool-badge">Notion</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <hr class="divider">
+
+      <div class="section-h">
+        <span class="dot" style="background:#8B5CF6"></span>
+        📐 目的別フレームワーク 使い分け
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>フレームワーク</th>
+              <th>向いている目的</th>
+              <th>構造</th>
+              <th>注意点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SWRS</strong></td>
+              <td>認知拡大・バズ狙い</td>
+              <td>Stop→Watch→React→Share</td>
+              <td>エンタメ性必須</td>
+            </tr>
+            <tr>
+              <td><strong>PREP</strong></td>
+              <td>教育・情報発信</td>
+              <td>Point→Reason→Example→Point</td>
+              <td>論理構造を崩さない</td>
+            </tr>
+            <tr>
+              <td><strong>PASONA</strong></td>
+              <td>販売・LINE誘導</td>
+              <td>Problem→Agitation→Solution→Offer→Narrow→Action</td>
+              <td>感情を過剰に刺激しない</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: ANALYSIS ========== -->
+  <div class="page-section" id="page-analysis">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#22C55E"></span>
+        PART4｜分析・再現編
+      </div>
+      <h1>分析手順書</h1>
+      <p>感覚を排除し、データで判断するための分析プロセス。スプレッドシート→CSV→AI分析→改善のループを回す。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h">
+        <span class="dot" style="background:#22C55E"></span>
+        🔄 分析ループの全体フロー
+      </div>
+
+      <div class="sop-block">
+        <div class="sop-head">
+          <span style="font-size:20px">📊</span>
+          <span class="sop-head-title">週次分析 標準手順（所要時間：30〜45分）</span>
+        </div>
+        <div class="sop-body">
+          <ol class="sop-steps">
+            <li><div><strong>スプレッドシートの週次データを確認する</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">全投稿のデータが揃っているか確認。欠損があれば補完する</span></div></li>
+            <li><div><strong>CSVをエクスポートする</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">Googleスプレッドシート：ファイル→ダウンロード→CSVファイル</span></div></li>
+            <li><div><strong>AIにCSVをアップロードして上位下位比較を依頼する</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">プロンプト集の「週次分析プロンプト」を使用</span></div></li>
+            <li><div><strong>差分分析を実施する</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">上位動画と下位動画の「フック・構成・CTA・投稿時間」の差を洗い出す</span></div></li>
+            <li><div><strong>勝ちパターンを抽出してDBに記録する</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">フックDB・CTAパターンDB・構成DBを更新</span></div></li>
+            <li><div><strong>次週の改善ポイントを1〜3個に絞る</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">多くしない。絞る。実行できる量だけ</span></div></li>
+            <li><div><strong>テンプレート・プロンプトを更新する</strong><br><span style="color:var(--color-text-muted);font-size:var(--text-xs)">学習した改善を次回制作に組み込む。これが「資産化」</span></div></li>
+          </ol>
+          <div class="sop-note">⚡ 分析は「良かった点を探す」のではなく「なぜ差が生まれたのか構造的に理解する」ため。AIの褒め傾向に惑わされず、数値の差分を見ること。</div>
+        </div>
+      </div>
+
+      <div class="section-h" style="margin-top:32px">
+        <span class="dot" style="background:#22C55E"></span>
+        📈 記録すべきデータ項目
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr><th>カテゴリ</th><th>項目</th><th>タイミング</th><th>重要度</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>基本情報</td><td>投稿日・プラットフォーム・テーマ・ジャンル</td><td>投稿前</td><td>🔴 必須</td></tr>
+            <tr><td>制作設計</td><td>フレームワーク・フックパターン・CTA種類</td><td>投稿前</td><td>🔴 必須</td></tr>
+            <tr><td>フロー指標</td><td>再生数・いいね数・コメント数・保存数・シェア数</td><td>投稿24h後</td><td>🔴 必須</td></tr>
+            <tr><td>エンゲージメント</td><td>視聴完了率・停止率（初動3秒）・エンゲージメント率</td><td>投稿48h後</td><td>🟡 推奨</td></tr>
+            <tr><td>導線</td><td>LINEクリック数・CTAクリック率</td><td>随時</td><td>🟡 推奨</td></tr>
+            <tr><td>ストック指標</td><td>フォロワー増減・リスト獲得数</td><td>週次</td><td>🟡 推奨</td></tr>
+            <tr><td>AI評価</td><td>AIスコア（10点満点）・AI改善コメント要約</td><td>分析時</td><td>🟢 任意</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: DECISION TREE ========== -->
+  <div class="page-section" id="page-decision-tree">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#22C55E"></span>
+        PART4｜分析・再現編
+      </div>
+      <h1>改善思考ツリー</h1>
+      <p>分析結果から「次に何をすべきか」を迷わず決めるための思考フレーム。AIの回答を判断するときもこのツリーを基準にする。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="info-block info-tip">
+        <span class="info-icon">🌳</span>
+        <div><strong>使い方：</strong>週次分析後、AIの分析結果を見ながらこのツリーを使う。「今どこにいるか？」を特定し、対応する改善アクションを選ぶ。AIが「○○を改善してください」と言っても、このツリーで「なぜ」を確認してから実行する。</div>
+      </div>
+
+      <div class="section-h">
+        <span class="dot" style="background:#22C55E"></span>
+        🌳 改善思考ツリー
+      </div>
+
+      <!-- Level 1 -->
+      <div class="tree-node" style="border-color:rgba(6,182,212,0.3)">
+        <div class="tree-node-q" style="font-size:var(--text-base)">① まず確認：再生数は伸びているか？</div>
+        <div class="tree-branches">
+          <div class="tree-branch" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
+            <div class="branch-label" style="color:#22C55E">✅ 伸びている</div>
+            <div class="branch-action">▶ 次の質問へ進む（②へ）<br>再生数が取れているなら、次は「エンゲージメントの質」を確認</div>
+          </div>
+          <div class="tree-branch" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.2)">
+            <div class="branch-label" style="color:#ef4444">❌ 伸びていない</div>
+            <div class="branch-action">▶ フック（冒頭3秒）を改善する<br>・逆張り表現を試す<br>・数字を冒頭に入れる<br>・損失回避の言葉を使う<br>・投稿時間を変える</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 2 -->
+      <div class="tree-node" style="border-color:rgba(34,197,94,0.3)">
+        <div class="tree-node-q">② 視聴完了率・停止率は高いか？（20%以上が目安）</div>
+        <div class="tree-branches">
+          <div class="tree-branch" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
+            <div class="branch-label" style="color:#22C55E">✅ 高い（20%以上）</div>
+            <div class="branch-action">▶ 次の質問へ（③へ）<br>維持率は問題なし。次はCTAの効果を確認</div>
+          </div>
+          <div class="tree-branch" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.2)">
+            <div class="branch-label" style="color:#ef4444">❌ 低い（20%未満）</div>
+            <div class="branch-action">▶ 維持率設計を改善する<br>・テンポが遅い → 情報密度を上げる<br>・話が脱線している → 構造を1テーマに絞る<br>・CTA位置が最後だけ → 中盤にも入れる<br>・画面変化が少ない → カット数を増やす</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 3 -->
+      <div class="tree-node" style="border-color:rgba(59,130,246,0.3)">
+        <div class="tree-node-q">③ CTAのクリック率は取れているか？（保存・コメント・LINE）</div>
+        <div class="tree-branches">
+          <div class="tree-branch" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
+            <div class="branch-label" style="color:#22C55E">✅ 取れている</div>
+            <div class="branch-action">▶ 勝ちパターンとしてDBに記録する<br>・同じ構造でテーマを変えて量産<br>・テンプレを更新して次回に活かす</div>
+          </div>
+          <div class="tree-branch" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.2)">
+            <div class="branch-label" style="color:#ef4444">❌ 取れていない</div>
+            <div class="branch-action">▶ CTA設計を改善する<br>・CTA種類を絞る（1動画1CTA）<br>・動線を明確にする（「→概要欄から」など）<br>・保存誘導の言葉を変える<br>・LINEの特典・理由を強調する</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 4 -->
+      <div class="tree-node" style="border-color:rgba(249,115,22,0.3)">
+        <div class="tree-node-q">④ 改善を実施して → 次の週も同じ問題が起きているか？</div>
+        <div class="tree-branches">
+          <div class="tree-branch" style="background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)">
+            <div class="branch-label" style="color:#22C55E">✅ 改善されている</div>
+            <div class="branch-action">▶ テンプレ・プロンプトを更新して資産化<br>改善前後のデータを記録してケーススタディDBに追加</div>
+          </div>
+          <div class="tree-branch" style="background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.2)">
+            <div class="branch-label" style="color:#F97316">⚠️ まだ改善されていない</div>
+            <div class="branch-action">▶ 構造問題を疑う<br>・ジャンル自体が合っていないか？<br>・ターゲット設計がずれていないか？<br>・世界観・アカウント設計から見直す<br>→ PART2（事業設計）に戻る</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="section-h">
+        <span class="dot" style="background:#F97316"></span>
+        ⚖️ AIの回答を判断するための基準
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr><th>AIが言うこと</th><th>判断基準</th><th>実際の行動</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>「このフックは効果的です」</td>
+              <td>過去の自分のデータで効果が出ているか？</td>
+              <td>思考ツリー①を確認。データがなければ仮説として扱う</td>
+            </tr>
+            <tr>
+              <td>「〇〇を改善してください」</td>
+              <td>ツリーのどのレベルの問題か？</td>
+              <td>ツリーに当てはめて優先順位を決める</td>
+            </tr>
+            <tr>
+              <td>「この動画は完成度が高い」</td>
+              <td>AIの褒め傾向に注意。数値はどうか？</td>
+              <td>数値が伴わない褒めは無視。「数値的根拠は？」と追加質問する</td>
+            </tr>
+            <tr>
+              <td>「〇〇のツールが最適です」</td>
+              <td>自分のフェーズに合っているか？</td>
+              <td>ロードマップのフェーズと照合。コストも確認する</td>
+            </tr>
+            <tr>
+              <td>矛盾した回答</td>
+              <td>AIは幻覚・平均化する</td>
+              <td>複数のAIで同じ質問をして比較。最終判断は自分がする</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-block info-danger">
+        <span class="info-icon">⚠️</span>
+        <div><strong>重要：</strong>このツリーは「何をやるべきか」の地図。AIの回答は「候補の提示」。実行するかどうかの最終判断は常に自分。AIを盲信しない。</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: SPREADSHEET ========== -->
+  <div class="page-section" id="page-spreadsheet">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#22C55E"></span>
+        PART4｜記録設計
+      </div>
+      <h1>スプレッドシート<br>設計ガイド</h1>
+      <p>分析の土台となるデータベース設計。正しく記録されたデータだけがAI分析の入力になる。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h">
+        <span class="dot" style="background:#22C55E"></span>
+        📋 推奨カラム設計（スプレッドシート）
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table class="ss-table">
+          <thead>
+            <tr>
+              <th>列</th><th>カラム名</th><th>型</th><th>記入例</th><th>目的</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">A</td><td>投稿日</td><td><span class="ss-col-type" style="background:rgba(59,130,246,0.15);color:#3B82F6">DATE</span></td><td>2026/05/07</td><td>時系列管理</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">B</td><td>プラットフォーム</td><td><span class="ss-col-type" style="background:rgba(139,92,246,0.15);color:#8B5CF6">TAG</span></td><td>Instagram / TikTok</td><td>媒体別分析</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">C</td><td>タイトル・テーマ</td><td><span class="ss-col-type" style="background:rgba(148,163,184,0.15);color:#94A3B8">TEXT</span></td><td>AI時代の副業3選</td><td>内容管理</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">D</td><td>ジャンルタグ</td><td><span class="ss-col-type" style="background:rgba(139,92,246,0.15);color:#8B5CF6">TAG</span></td><td>#副業 #AI #初心者</td><td>カテゴリ分析</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">E</td><td>フレームワーク</td><td><span class="ss-col-type" style="background:rgba(139,92,246,0.15);color:#8B5CF6">TAG</span></td><td>PREP / PASONA / SWRS</td><td>構成分析</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">F</td><td>フックパターン</td><td><span class="ss-col-type" style="background:rgba(139,92,246,0.15);color:#8B5CF6">TAG</span></td><td>数字 / 逆張り / 損失回避</td><td>フック分析</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">G</td><td>CTA種類</td><td><span class="ss-col-type" style="background:rgba(139,92,246,0.15);color:#8B5CF6">TAG</span></td><td>保存 / コメント / LINE</td><td>CTA分析</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">H</td><td>再生数</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">NUM</span></td><td>12500</td><td>リーチ計測</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">I</td><td>いいね数</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">NUM</span></td><td>340</td><td>反応計測</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">J</td><td>保存数</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">NUM</span></td><td>89</td><td>価値計測</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">K</td><td>コメント数</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">NUM</span></td><td>23</td><td>エンゲージメント</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">L</td><td>エンゲージメント率</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">CALC</span></td><td>=（I+J+K）/H</td><td>質計測</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">M</td><td>視聴完了率</td><td><span class="ss-col-type" style="background:rgba(34,197,94,0.15);color:#22C55E">%</span></td><td>28%</td><td>維持率評価</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">N</td><td>AIスコア（10点）</td><td><span class="ss-col-type" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span></td><td>7.5</td><td>AI評価記録</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">O</td><td>AI改善コメント要約</td><td><span class="ss-col-type" style="background:rgba(249,115,22,0.15);color:#F97316">AI</span></td><td>フックが弱い・CTAが不明確</td><td>改善記録</td></tr>
+            <tr><td style="color:var(--color-text-muted);font-weight:700">P</td><td>実施した改善</td><td><span class="ss-col-type" style="background:rgba(148,163,184,0.15);color:#94A3B8">TEXT</span></td><td>冒頭に数字追加</td><td>PDCAトラッキング</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-h" style="margin-top:32px">
+        <span class="dot" style="background:#22C55E"></span>
+        💡 AI分析への渡し方
+      </div>
+      <div class="sop-block">
+        <div class="sop-head">
+          <span style="font-size:20px">🤖</span>
+          <span class="sop-head-title">CSVをAIに正しく渡す手順</span>
+        </div>
+        <div class="sop-body">
+          <ol class="sop-steps">
+            <li>GoogleスプレッドシートをCSVでダウンロード</li>
+            <li>ChatGPT（Code Interpreter） or ClaudeにCSVを添付</li>
+            <li>プロンプト集の「週次分析プロンプト」をそのままコピペして送信</li>
+            <li>AIの回答を「改善思考ツリー」と照合して判断する</li>
+            <li>採用した改善をP列（実施した改善）に記録</li>
+          </ol>
+          <div class="sop-note">⚡ AI分析はデータが少ないと機能しない。最低10本以上の投稿データが蓄積されてから分析を始めるのが効果的。</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: AI GUIDE ========== -->
+  <div class="page-section" id="page-ai-guide">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#F97316"></span>
+        PART5｜AI実務運用編
+      </div>
+      <h1>AI使い分けガイド</h1>
+      <p>AIごとの特徴を理解し、用途に合った使い方をする。全部に同じプロンプトを投げても効果は出ない。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h">
+        <span class="dot" style="background:#F97316"></span>
+        🤖 主要AI 特徴・使い分け早見表
+      </div>
+
+      <div class="grid-2">
+        <div class="ai-card">
+          <div class="ai-name">ChatGPT / GPT-4o</div>
+          <div class="ai-role">🎯 台本・アイデア・量産向き</div>
+          <div class="rating-row"><span class="rating-label">台本生成</span><div class="rating-bar"><div class="rating-fill" style="width:90%;background:linear-gradient(90deg,#F97316,#FCD34D)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">アイデア量</span><div class="rating-bar"><div class="rating-fill" style="width:88%;background:linear-gradient(90deg,#F97316,#FCD34D)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">批判分析</span><div class="rating-bar"><div class="rating-fill" style="width:60%;background:linear-gradient(90deg,#F97316,#FCD34D)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">データ分析</span><div class="rating-bar"><div class="rating-fill" style="width:85%;background:linear-gradient(90deg,#F97316,#FCD34D)"></div></div></div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.7">
+            <strong style="color:var(--color-text)">使う場面：</strong>GEMs/GPTsで台本生成・量産・Code Interpreterでのデータ分析<br>
+            <strong style="color:var(--color-text)">注意：</strong>褒め傾向あり。批判分析は苦手。過信しない
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-name">Claude</div>
+          <div class="ai-role">⚖️ 批判・添削・ロング文書向き</div>
+          <div class="rating-row"><span class="rating-label">台本生成</span><div class="rating-bar"><div class="rating-fill" style="width:80%;background:linear-gradient(90deg,#8B5CF6,#C4B5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">批判分析</span><div class="rating-bar"><div class="rating-fill" style="width:95%;background:linear-gradient(90deg,#8B5CF6,#C4B5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">文書作成</span><div class="rating-bar"><div class="rating-fill" style="width:92%;background:linear-gradient(90deg,#8B5CF6,#C4B5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">コード生成</span><div class="rating-bar"><div class="rating-fill" style="width:90%;background:linear-gradient(90deg,#8B5CF6,#C4B5FD)"></div></div></div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.7">
+            <strong style="color:var(--color-text)">使う場面：</strong>台本添削・批判分析・マニュアル作成・ツール開発<br>
+            <strong style="color:var(--color-text)">注意：</strong>長い会話で文脈を維持しやすい。指示は具体的に
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-name">Gemini / GEMs</div>
+          <div class="ai-role">🔍 検索連携・情報収集向き</div>
+          <div class="rating-row"><span class="rating-label">情報収集</span><div class="rating-bar"><div class="rating-fill" style="width:92%;background:linear-gradient(90deg,#3B82F6,#93C5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">台本生成</span><div class="rating-bar"><div class="rating-fill" style="width:78%;background:linear-gradient(90deg,#3B82F6,#93C5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">トレンド調査</span><div class="rating-bar"><div class="rating-fill" style="width:90%;background:linear-gradient(90deg,#3B82F6,#93C5FD)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">動画企画</span><div class="rating-bar"><div class="rating-fill" style="width:85%;background:linear-gradient(90deg,#3B82F6,#93C5FD)"></div></div></div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.7">
+            <strong style="color:var(--color-text)">使う場面：</strong>GEMsで台本量産テンプレ化・バズ分析・トレンド調査<br>
+            <strong style="color:var(--color-text)">注意：</strong>Googleと連携。最新情報に強い
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-name">Grok</div>
+          <div class="ai-role">📱 SNSトレンド・リアルタイム向き</div>
+          <div class="rating-row"><span class="rating-label">SNSトレンド</span><div class="rating-bar"><div class="rating-fill" style="width:95%;background:linear-gradient(90deg,#06B6D4,#67E8F9)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">リアルタイム</span><div class="rating-bar"><div class="rating-fill" style="width:90%;background:linear-gradient(90deg,#06B6D4,#67E8F9)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">バズ分析</span><div class="rating-bar"><div class="rating-fill" style="width:85%;background:linear-gradient(90deg,#06B6D4,#67E8F9)"></div></div></div>
+          <div class="rating-row"><span class="rating-label">動画生成</span><div class="rating-bar"><div class="rating-fill" style="width:80%;background:linear-gradient(90deg,#06B6D4,#67E8F9)"></div></div></div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.7">
+            <strong style="color:var(--color-text)">使う場面：</strong>X（Twitter）トレンド調査・バズ分析・0〜3ヶ月の動画生成ツールとして移行検討<br>
+            <strong style="color:var(--color-text)">注意：</strong>動画生成はKling/Runwayへの移行前提
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="section-h">
+        <span class="dot" style="background:#F97316"></span>
+        ⚠️ AI利用時の注意点（5大リスク）
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr><th>リスク</th><th>具体的な症状</th><th>対策</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>🟡 <strong>褒め傾向</strong></td>
+              <td>「素晴らしい台本ですね」→数値は悪い</td>
+              <td>「数値的根拠は？」「弱点を3つ言って」と必ず聞く</td>
+            </tr>
+            <tr>
+              <td>🔴 <strong>幻覚（ハルシネーション）</strong></td>
+              <td>存在しないデータ・ツール名を自信満々で言う</td>
+              <td>ファクトチェック必須。数値・固有名詞は必ず確認</td>
+            </tr>
+            <tr>
+              <td>🟡 <strong>平均化</strong></td>
+              <td>無難な答えしか出てこない</td>
+              <td>「あえて極端な案を出して」「尖った提案をして」と指示する</td>
+            </tr>
+            <tr>
+              <td>🟠 <strong>過信リスク</strong></td>
+              <td>AIの言う通りにしたら結果が出なかった</td>
+              <td>改善思考ツリーで自分が判断。AIは参考意見として使う</td>
+            </tr>
+            <tr>
+              <td>🟠 <strong>依存リスク</strong></td>
+              <td>AIなしでは何も決められなくなる</td>
+              <td>「最終判断は人間」の原則を常に守る</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: PROMPTS ========== -->
+  <div class="page-section" id="page-prompts">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#F97316"></span>
+        PART5｜AI実務運用編
+      </div>
+      <h1>プロンプト集</h1>
+      <p>コピペしてそのまま使えるプロンプト集。＿＿の部分に内容を入れて使う。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h"><span class="dot" style="background:#8B5CF6"></span>📝 台本生成プロンプト</div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-label" style="color:#8B5CF6">PREP台本生成</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">コピー</button>
+        </div>
+        <pre class="prompt-body"><span class="kw">あなたはSNS動画の台本設計者です。</span>
+以下の条件でPREPフレームワークを使った
+ショート動画台本を作成してください。
+
+<span class="ph">【テーマ】</span>＿＿＿＿＿
+<span class="ph">【ターゲット】</span>＿＿＿＿＿（例：副業に興味ある30代会社員）
+<span class="ph">【CTA】</span>＿＿＿＿＿（例：LINE登録 / 保存 / コメント）
+<span class="ph">【動画の長さ】</span>60秒
+
+構成：
+- フック（冒頭3秒）：数字か逆張りを使う
+- Point（結論）：1文で
+- Reason（理由）：2つまで
+- Example（具体例）：1つ
+- Point（まとめ）：CTA込みで締める
+
+<span class="kw">※感情を動かす言葉を入れること
+※専門用語は使わない
+※台本の後に「弱点3つ」も教えてください</span></pre>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-label" style="color:#8B5CF6">フックパターン生成</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">コピー</button>
+        </div>
+        <pre class="prompt-body">以下のテーマで「冒頭3秒のフック」を
+<span class="ph">10パターン</span>生成してください。
+
+<span class="ph">【テーマ】</span>＿＿＿＿＿
+<span class="ph">【ターゲット】</span>＿＿＿＿＿
+
+条件：
+- <span class="kw">数字型</span>（例：99%の人が知らない〜）を3つ
+- <span class="kw">逆張り型</span>（例：〜は間違いです）を3つ
+- <span class="kw">損失回避型</span>（例：やらないと〜になります）を2つ
+- <span class="kw">共感型</span>（例：〜で悩んでいませんか）を2つ
+
+各パターンに「なぜ刺さるか」を1行で添えてください</pre>
+      </div>
+
+      <div class="section-h" style="margin-top:32px"><span class="dot" style="background:#22C55E"></span>📊 分析プロンプト</div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-label" style="color:#22C55E">週次分析プロンプト（CSV用）</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">コピー</button>
+        </div>
+        <pre class="prompt-body"><span class="kw">添付のCSVは私のSNS動画の投稿データです。
+以下の分析を実施してください。</span>
+
+<span class="ph">【分析1】上位下位比較</span>
+- 再生数上位3本と下位3本を特定する
+- フック・フレームワーク・CTA・投稿時間の差を比較する
+- 差分を「構造的な理由」で説明する
+
+<span class="ph">【分析2】パターン抽出</span>
+- 再生数10,000以上の動画に共通するパターンを3つ
+- エンゲージメント率が高い動画の特徴を3つ
+
+<span class="ph">【分析3】改善提案</span>
+- 来週取り組むべき改善を優先順位付きで3つ
+
+<span class="kw">⚠️ 数値的根拠を必ず示すこと
+⚠️ 褒めは不要。問題点を具体的に</span></pre>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-label" style="color:#22C55E">動画評価プロンプト</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">コピー</button>
+        </div>
+        <pre class="prompt-body">以下の動画台本を評価してください。
+
+<span class="ph">【台本】</span>
+＿＿＿＿＿（ここに台本を貼り付ける）
+
+評価基準：
+1. <span class="kw">フック強度</span>（10点）：冒頭3秒で視聴を続ける理由があるか
+2. <span class="kw">維持率</span>（10点）：テンポ・構造・情報密度は適切か
+3. <span class="kw">CTA明確度</span>（10点）：何をして欲しいかが1つに絞られているか
+4. <span class="kw">ターゲット整合性</span>（10点）：想定ターゲットに刺さるか
+
+合計スコアと、各項目の改善点を具体的に教えてください。</pre>
+      </div>
+
+      <div class="section-h" style="margin-top:32px"><span class="dot" style="background:#F97316"></span>🔧 AI指示パターン（汎用）</div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-label" style="color:#F97316">批判分析モード起動</span>
+          <button class="copy-btn" onclick="copyPrompt(this)">コピー</button>
+        </div>
+        <pre class="prompt-body"><span class="kw">これから私は批判的なフィードバックを求めます。
+褒めることは一切不要です。
+「悪い点」「弱点」「改善すべき構造的問題」のみを
+具体的に指摘してください。</span>
+
+対象：
+<span class="ph">＿＿＿＿＿（台本 / 戦略 / 分析結果などを貼る）</span>
+
+問いかけ：
+- この内容の致命的な弱点は何か？
+- なぜうまくいかない可能性があるか？
+- 見落としている視点はあるか？</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: AI JUDGMENT ========== -->
+  <div class="page-section" id="page-ai-judgment">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#F97316"></span>
+        PART5｜AI実務運用編
+      </div>
+      <h1>AI回答の<br>判断基準</h1>
+      <p>AIの回答をそのまま採用しない。このページのフィルターを通してから判断する。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h"><span class="dot" style="background:#F97316"></span>🔍 判断フィルター 5層構造</div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+        <div class="sop-block">
+          <div class="sop-head" style="background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.2)">
+            <span style="font-size:20px">1️⃣</span>
+            <span class="sop-head-title" style="color:#22C55E">データと照合する</span>
+          </div>
+          <div class="sop-body">
+            <p style="font-size:var(--text-sm);line-height:1.8">AIの提案が「自分のスプレッドシートのデータと一致しているか」を確認する。一致しない場合は、AIが一般論を言っている可能性が高い。<br><strong>質問：「これは私のデータでも同じ傾向が出ていますか？」</strong></p>
+          </div>
+        </div>
+
+        <div class="sop-block">
+          <div class="sop-head" style="background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.2)">
+            <span style="font-size:20px">2️⃣</span>
+            <span class="sop-head-title" style="color:#3B82F6">改善思考ツリーに当てはめる</span>
+          </div>
+          <div class="sop-body">
+            <p style="font-size:var(--text-sm);line-height:1.8">AIが「〇〇を改善してください」と言ったとき、思考ツリーのどのレベルの問題なのかを確認する。優先順位が明確になる。<br><strong>ツリーの優先順位：フック → 維持率 → CTA → 構造設計</strong></p>
+          </div>
+        </div>
+
+        <div class="sop-block">
+          <div class="sop-head" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.2)">
+            <span style="font-size:20px">3️⃣</span>
+            <span class="sop-head-title" style="color:#8B5CF6">実行コストを計算する</span>
+          </div>
+          <div class="sop-body">
+            <p style="font-size:var(--text-sm);line-height:1.8">その改善を実行するのにかかる時間・コスト・リスクを計算する。AIは実行コストを無視した提案をすることがある。<br><strong>基準：1週間以内に試せるか？コストはペイするか？</strong></p>
+          </div>
+        </div>
+
+        <div class="sop-block">
+          <div class="sop-head" style="background:rgba(249,115,22,0.08);border-color:rgba(249,115,22,0.2)">
+            <span style="font-size:20px">4️⃣</span>
+            <span class="sop-head-title" style="color:#F97316">複数AIで検証する</span>
+          </div>
+          <div class="sop-body">
+            <p style="font-size:var(--text-sm);line-height:1.8">重要な判断は1つのAIだけで決めない。ChatGPT・Claude・Geminiに同じ質問をして、3つの回答が一致している内容だけを採用する。<br><strong>一致 = 信頼度高 / 不一致 = 追加検証が必要</strong></p>
+          </div>
+        </div>
+
+        <div class="sop-block">
+          <div class="sop-head" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2)">
+            <span style="font-size:20px">5️⃣</span>
+            <span class="sop-head-title" style="color:#ef4444">最終判断は自分がする</span>
+          </div>
+          <div class="sop-body">
+            <p style="font-size:var(--text-sm);line-height:1.8">フィルター1〜4を通過した提案でも、最終的に「やる/やらない」を決めるのは自分。AIは設計者を補助する道具。設計者になれ。<br><strong>AIに使われるのではなく、AIを使いこなす。</strong></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== PAGE: ROADMAP GUIDE ========== -->
+  <div class="page-section" id="page-roadmap-guide">
+    <div class="page-hero">
+      <div class="hero-eyebrow">
+        <span class="dot" style="background:#3B82F6"></span>
+        PART6｜実践OS編
+      </div>
+      <h1>フェーズ別<br>マニュアルの使い方</h1>
+      <p>初期・中期・後期でマニュアルの「使い方」が変わる。自分が今どのフェーズにいるかを確認して使う。</p>
+    </div>
+    <div class="content-wrap">
+
+      <div class="section-h"><span class="dot" style="background:#3B82F6"></span>🗺️ フェーズ別 使い方ガイド</div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+
+        <div class="card" style="border-color:rgba(139,92,246,0.3)">
+          <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+            <span class="phase-badge phase-short">初期 0〜3ヶ月</span>
+            <span style="font-size:var(--text-sm);color:var(--color-text-muted)">基盤構築・検証フェーズ</span>
+          </div>
+          <div class="grid-2" style="gap:var(--space-3)">
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c01);margin-bottom:var(--space-2)">毎日使うページ</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>📋 日次チェックリスト（全項目）</li>
+                <li>🎬 動画制作SOP（手順通りに実行）</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c01);margin-bottom:var(--space-2)">週1回使うページ</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>📊 分析手順書（データ蓄積を優先）</li>
+                <li>📑 スプレッドシート（記録が最優先）</li>
+              </ul>
+            </div>
+          </div>
+          <div class="info-block info-tip" style="margin-top:var(--space-3);margin-bottom:0">
+            <span class="info-icon">💡</span>
+            <div style="font-size:var(--text-xs)"><strong>初期のミッション：</strong>まず動かす。完璧にしない。10本投稿してデータを作ることが最優先。分析は10本溜まってから始める。</div>
+          </div>
+        </div>
+
+        <div class="card" style="border-color:rgba(59,130,246,0.3)">
+          <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+            <span class="phase-badge phase-mid">中期 3〜12ヶ月</span>
+            <span style="font-size:var(--text-sm);color:var(--color-text-muted)">仕組み化・安定化フェーズ</span>
+          </div>
+          <div class="grid-2" style="gap:var(--space-3)">
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c02);margin-bottom:var(--space-2)">重点使用ページ</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>🌳 改善思考ツリー（判断基準として）</li>
+                <li>⚖️ AI回答の判断基準</li>
+                <li>💬 プロンプト集（カスタマイズして使う）</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c02);margin-bottom:var(--space-2)">教える立場として</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>このマニュアルを初期メンバーに渡す</li>
+                <li>SOPを実務に合わせてカスタマイズする</li>
+                <li>勝ちパターンDBを共有ドキュメントにする</li>
+              </ul>
+            </div>
+          </div>
+          <div class="info-block info-tip" style="margin-top:var(--space-3);margin-bottom:0">
+            <span class="info-icon">💡</span>
+            <div style="font-size:var(--text-xs)"><strong>中期のミッション：</strong>仕組み化と教育。自分が抜けても動く体制を作る。マニュアルを「育てる」フェーズ。</div>
+          </div>
+        </div>
+
+        <div class="card" style="border-color:rgba(34,197,94,0.3)">
+          <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+            <span class="phase-badge phase-long">後期 12ヶ月〜</span>
+            <span style="font-size:var(--text-sm);color:var(--color-text-muted)">資産化・FC展開フェーズ</span>
+          </div>
+          <div class="grid-2" style="gap:var(--space-3)">
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c04);margin-bottom:var(--space-2)">主な使い方</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>マニュアルの「見直し業務」が主役になる</li>
+                <li>AI使い分けガイドを最新ツールに更新</li>
+                <li>中期メンバーに渡し・初期に中期が教える</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c04);margin-bottom:var(--space-2)">FC展開への準備</div>
+              <ul style="list-style:none;font-size:var(--text-sm);line-height:2">
+                <li>SOPをFC向けに標準化</li>
+                <li>スプレッドシートをDB化・自動化</li>
+                <li>教育コンテンツ化（このマニュアルが商品に）</li>
+              </ul>
+            </div>
+          </div>
+          <div class="info-block info-tip" style="margin-top:var(--space-3);margin-bottom:0">
+            <span class="info-icon">💡</span>
+            <div style="font-size:var(--text-xs)"><strong>後期のミッション：</strong>自分は戦略・監督に集中。実務は中期チームが回す。マニュアル自体が「資産」になるフェーズ。</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+<div class="mobile-action-bar" aria-label="モバイル操作"><button onclick="showPage('checklist')">今日</button><button onclick="toggleFocusMode()">集中</button><button onclick="showPage('video-flow')">SOP</button></div>
+</div><!-- end main-content -->
+
+<script>
+// ===== NAVIGATION =====
+function showPage(id) {
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  const nav = document.getElementById('nav-' + id);
+  if (page) page.classList.add('active');
+  if (nav) nav.classList.add('active');
+  document.getElementById('page-title-bar').textContent = nav ? nav.querySelector('.label').textContent.trim() : '';
+  window.scrollTo(0, 0);
+  closeSidebar();
+}
+
+// ===== CHECKLIST =====
+function toggleCheck(item) {
+  item.classList.toggle('done');
+  updateProgress();
+}
+
+function updateProgress() {
+  const all = Array.from(document.querySelectorAll('.checklist-item'));
+  const done = all.filter(item => item.classList.contains('done'));
+  const pct = all.length ? Math.round((done.length / all.length) * 100) : 0;
+  const label = document.getElementById('today-progress-label');
+  const fill = document.getElementById('today-progress-fill');
+  if (label) label.textContent = pct + '%';
+  if (fill) fill.style.width = pct + '%';
+  renderNextActions();
+}
+
+function getCheckTitle(item) {
+  const text = item.querySelector('.check-text');
+  return text ? text.childNodes[0].textContent.trim() : '次のチェック項目';
+}
+
+function renderNextActions() {
+  const mount = document.getElementById('next-actions');
+  if (!mount) return;
+  const pending = Array.from(document.querySelectorAll('.checklist-item:not(.done)')).slice(0, 3);
+  if (pending.length === 0) {
+    mount.innerHTML = '<div class="action-card"><div class="action-index">✓</div><div><div class="action-title">今日の運用チェックは完了です</div><div class="action-meta">週次分析またはテンプレ更新に進めます</div></div></div>';
+    document.getElementById('focus-current-title').textContent = '完了：今日は増やさない';
+    document.getElementById('focus-current-desc').textContent = '追加作業を増やさず、記録と休息を優先してください。';
+    return;
+  }
+  mount.innerHTML = pending.map((item, index) => {
+    const title = getCheckTitle(item);
+    const tag = item.querySelector('.check-tag')?.textContent.trim() || 'ACTION';
+    return `<button class="action-card" onclick="focusChecklistItem(${index})">
+      <span class="action-index">0${index + 1}</span>
+      <span><span class="action-title">${title}</span><span class="action-meta">${tag} / 今見える行動は最大3つ</span></span>
+      <span class="action-cta">開く</span>
+    </button>`;
+  }).join('');
+  const firstTitle = getCheckTitle(pending[0]);
+  document.getElementById('focus-current-title').textContent = firstTitle;
+  document.getElementById('focus-current-desc').textContent = 'まずこれだけ完了。終わったらチェックして次の1手へ。';
+}
+
+function focusChecklistItem(index) {
+  const item = Array.from(document.querySelectorAll('.checklist-item:not(.done)'))[index];
+  if (!item) return;
+  item.scrollIntoView({ block: 'center' });
+  item.classList.add('current-step');
+  setTimeout(() => item.classList.remove('current-step'), 900);
+}
+
+function toggleFocusMode() {
+  document.body.classList.toggle('focus-mode');
+  const isFocus = document.body.classList.contains('focus-mode');
+  const label = isFocus ? '通常表示に戻す' : '集中表示に切り替える';
+  const inline = document.getElementById('focus-toggle-inline');
+  const top = document.getElementById('focus-toggle-top');
+  if (inline) inline.textContent = label;
+  if (top) top.textContent = isFocus ? 'Exit Focus' : 'Focus Mode';
+}
+
+function resetChecks() {
+  if (confirm('チェックをリセットしますか？')) {
+    document.querySelectorAll('.checklist-item.done').forEach(i => i.classList.remove('done'));
+    updateProgress();
+  }
+}
+
+// ===== COPY PROMPT =====
+function copyPrompt(btn) {
+  const pre = btn.closest('.prompt-card').querySelector('.prompt-body');
+  const text = pre.innerText || pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'コピー済み ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'コピー';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'コピー済み ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ===== SIDEBAR MOBILE =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ===== PRINT =====
+function printPage() {
+  window.print();
+}
+
+// ===== FLOW STEP COLORS =====
+const stepColors = ['#8B5CF6','#8B5CF6','#06B6D4','#06B6D4','#06B6D4','#F97316','#06B6D4','#3B82F6','#22C55E','#22C55E'];
+document.querySelectorAll('.flow-step').forEach((step, i) => {
+  if (stepColors[i]) {
+    step.style.setProperty('--step-c', stepColors[i]);
+    const before = document.createElement('style');
+    before.textContent = `.flow-step:nth-child(${i+1})::before{background:${stepColors[i]};opacity:0.8}`;
+    document.head.appendChild(before);
+  }
+});
+
+// ===== PROGRESSIVE DISCLOSURE FOR SOP =====
+document.querySelectorAll('.flow-step').forEach((step, index) => {
+  if (index === 0) step.classList.add('current-step');
+  const actions = document.createElement('div');
+  actions.className = 'step-actions';
+  actions.innerHTML = '<button class="mini-btn" type="button">このステップに集中</button><button class="mini-btn" type="button">完了扱い</button>';
+  step.querySelector('.step-content')?.appendChild(actions);
+  step.addEventListener('click', (event) => {
+    document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('current-step'));
+    step.classList.add('current-step');
+    if (event.target.textContent === '完了扱い') step.classList.toggle('done-step');
+  });
+});
+
+updateProgress();
+</script>
+</body>
+</html>

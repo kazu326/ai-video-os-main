@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI動画事業OS 作業ウィザード</title>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    /* ============================================================
+       CSS Variables
+    ============================================================ */
+    :root {
+      --color-bg: #101011;
+      --color-surface: #171717;
+      --color-surface-2: #1f1f20;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-text: #f5f5f5;
+      --color-text-muted: #888888;
+      --color-primary: #4f98a3;
+      --color-success: #6daa45;
+      --color-error: #dd6974;
+      --color-warning: #f9a826;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ============================================================
+       Base Styles
+    ============================================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    button, input, textarea {
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+      transition: all var(--transition);
+    }
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       Layout
+    ============================================================ */
+    .header {
+      background-color: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .project-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .project-name {
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .session-meta {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      display: flex;
+      gap: var(--space-2);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .btn-abort {
+      font-size: 0.875rem;
+      color: var(--color-error);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+    }
+    .btn-abort:hover {
+      background-color: rgba(221, 105, 116, 0.1);
+      border-color: var(--color-error);
+    }
+
+    .main-container {
+      flex: 1;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    /* ============================================================
+       Step Header
+    ============================================================ */
+    .step-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .step-badge {
+      align-self: flex-start;
+      background-color: var(--color-surface-2);
+      color: var(--color-primary);
+      font-size: 0.875rem;
+      font-weight: bold;
+      padding: var(--space-1) var(--space-3);
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+    }
+    .step-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.3;
+    }
+    .step-meta {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      display: flex;
+      gap: var(--space-4);
+    }
+    .step-meta span {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    /* ============================================================
+       Brand DB Alert
+    ============================================================ */
+    .brand-alert {
+      display: none;
+      background-color: rgba(249, 168, 38, 0.1);
+      border: 1px solid var(--color-warning);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-alert-text {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-warning);
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .btn-brand-db {
+      background-color: var(--color-warning);
+      color: #000;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: bold;
+    }
+
+    /* ============================================================
+       Tool Links
+    ============================================================ */
+    .section-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: var(--space-2);
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .tool-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--transition);
+    }
+    .tool-card:hover {
+      background-color: var(--color-surface-2);
+      border-color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    .tool-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .tool-name {
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    .tool-desc {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+    .tool-icon {
+      color: var(--color-primary);
+      font-size: 1.25rem;
+    }
+    .no-tools-msg {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      text-align: center;
+      padding: var(--space-4);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--color-border);
+    }
+
+    /* ============================================================
+       Memo Area
+    ============================================================ */
+    .memo-area {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .memo-textarea {
+      width: 100%;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      min-height: 100px;
+      resize: vertical;
+    }
+    .memo-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    /* ============================================================
+       Production Workspace (STEP 3-7)
+    ============================================================ */
+    .production-workspace {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .production-workspace.is-visible {
+      display: flex;
+    }
+    .production-panel,
+    .production-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .production-card {
+      background-color: var(--color-surface-2);
+    }
+    .production-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .production-label {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      font-weight: bold;
+    }
+    .production-input,
+    .production-select,
+    .production-textarea {
+      width: 100%;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+    }
+    .production-textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+    .production-input:focus,
+    .production-select:focus,
+    .production-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    .production-actions,
+    .production-tabs,
+    .copy-actions {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .production-btn,
+    .production-tab,
+    .copy-btn {
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.875rem;
+      font-weight: bold;
+    }
+    .production-btn:hover,
+    .production-tab:hover,
+    .copy-btn:hover {
+      border-color: var(--color-primary);
+    }
+    .production-btn.is-danger {
+      color: var(--color-error);
+    }
+    .production-tab.is-active,
+    .copy-btn.is-primary {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+    .production-note,
+    .copy-feedback {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+    .copy-feedback.is-success {
+      color: var(--color-success);
+    }
+    .copy-feedback.is-error {
+      color: var(--color-error);
+    }
+    .production-check {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.875rem;
+      color: var(--color-text);
+    }
+    .readonly-block {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      padding: var(--space-3);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 0.9rem;
+    }
+    @media (min-width: 700px) {
+      .production-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    /* ============================================================
+       Footer / Actions
+    ============================================================ */
+    .footer-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      padding-bottom: var(--space-6);
+    }
+    .btn-next {
+      background-color: var(--color-primary);
+      color: #fff;
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: bold;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-2);
+      box-shadow: 0 4px 12px rgba(79, 152, 163, 0.2);
+    }
+    .btn-next:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    .btn-next.is-finish {
+      background-color: var(--color-success);
+      box-shadow: 0 4px 12px rgba(109, 170, 69, 0.2);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background-color: var(--color-surface);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      z-index: 10;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: var(--color-primary);
+      width: 0%;
+      transition: width 300ms ease;
+    }
+
+    /* ============================================================
+       Modals
+    ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition);
+      padding: var(--space-4);
+    }
+    .modal-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      transition: transform var(--transition);
+    }
+    .modal-overlay.is-open .modal-content {
+      transform: translateY(0);
+    }
+    .modal-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .btn-close {
+      font-size: 1.25rem;
+      color: var(--color-text-muted);
+    }
+    .btn-close:hover {
+      color: var(--color-text);
+    }
+    .modal-body {
+      padding: var(--space-4);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    
+    /* Brand DB specific */
+    .brand-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .brand-section-title {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .brand-section-content {
+      background-color: var(--color-surface-2);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+  </style>
+</head>
+<body>
+  
+  <header class="header">
+    <div class="header-left">
+      <div id="media-icon" style="font-size: 1.5rem; color: var(--color-primary);"></div>
+      <div class="project-info">
+        <span class="project-name" id="display-project">プロジェクト名</span>
+        <div class="session-meta">
+          <span id="display-user">作業者</span> • <span id="display-level">熟練度</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="btn-abort" class="btn-abort">途中終了</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+    <div class="step-header">
+      <div class="step-badge" id="step-badge">STEP 1 / 14</div>
+      <h1 class="step-title" id="step-title">タイトル</h1>
+      <div class="step-meta">
+        <span><i class="ph ph-clock"></i> 目安: <span id="step-time">0</span>分</span>
+        <span id="step-id-display" style="display:none;"></span>
+      </div>
+    </div>
+
+    <div id="brand-alert" class="brand-alert">
+      <div class="brand-alert-text">
+        <i class="ph ph-warning-circle"></i> ブランド設定を確認してください
+      </div>
+      <button id="btn-show-brand" class="btn-brand-db">確認する</button>
+    </div>
+
+    <div class="tools-area">
+      <h2 class="section-title"><i class="ph ph-wrench"></i> 使用ツール</h2>
+      <div id="tools-container" class="tools-grid">
+        <!-- Tools will be rendered here -->
+      </div>
+    </div>
+
+    <div class="memo-area">
+      <h2 class="section-title"><i class="ph ph-note-pencil"></i> 作業メモ・気づき</h2>
+      <textarea id="step-memo" class="memo-textarea" placeholder="この工程での気づきや、次工程への申し送り事項があれば記入してください..."></textarea>
+    </div>
+
+    <div id="production-workspace" class="production-workspace">
+      <!-- STEP 3-7 production UI will be rendered here -->
+    </div>
+
+    <div class="footer-actions">
+      <button id="btn-next" class="btn-next">
+        <span>完了して次へ</span> <i class="ph ph-arrow-right"></i>
+      </button>
+    </div>
+  </main>
+
+  <div class="progress-container">
+    <div id="progress-bar" class="progress-bar"></div>
+  </div>
+
+  <!-- Brand DB Modal -->
+  <div id="modal-brand" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title"><i class="ph ph-book-bookmark"></i> ブランド設定</div>
+        <button class="btn-close" onclick="closeBrandModal()"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body" id="brand-content">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRODUCTION_STORAGE_KEY = "aiVideoOsProductionState";
+    const SUPABASE_URL = "https://adbitwieufbfczrfvkql.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_i9da9o6E7A9cN4uWS7gjHg_VUzSHPsT";
+    const BRAND_SETTINGS_TABLE = "brand_settings";
+    const BRAND_SETTINGS_PROJECT_KEY = "default";
+    const TOOL_LINKS_TABLE = "tool_links";
+    const TOOL_LINKS_PROJECT_KEY = "default";
+
+    let brandSettingsSupabaseClient = null;
+    let toolLinksSupabaseClient = null;
+
+    // ============================================================
+    // State Management
+    // ============================================================
+    const state = {
+      user: '',
+      project: '',
+      media: '',
+      level: '',
+      targetSteps: [],     // 実行対象のSTEP情報配列
+      currentIndex: 0,     // 現在のインデックス
+      allToolLinks: [],    // localStorageからのツールリンク
+      brandSettings: null,
+      sessionLog: {
+        id: crypto.randomUUID(),
+        startTime: Date.now(),
+        user: '',
+        project: '',
+        media: '',
+        level: '',
+        steps: [],         // 各STEPのログ
+        status: 'active'   // active, completed, aborted
+      },
+      currentStepStartTime: 0
+    };
+
+    let productionState = createDefaultProductionState();
+    const productionUiState = {
+      activeVideoByStep: {
+        5: 0,
+        6: 0,
+        7: 0
+      }
+    };
+
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const els = {
+      displayProject: document.getElementById('display-project'),
+      displayUser: document.getElementById('display-user'),
+      displayLevel: document.getElementById('display-level'),
+      mediaIcon: document.getElementById('media-icon'),
+      stepBadge: document.getElementById('step-badge'),
+      stepTitle: document.getElementById('step-title'),
+      stepTime: document.getElementById('step-time'),
+      brandAlert: document.getElementById('brand-alert'),
+      btnShowBrand: document.getElementById('btn-show-brand'),
+      toolsContainer: document.getElementById('tools-container'),
+      stepMemo: document.getElementById('step-memo'),
+      productionWorkspace: document.getElementById('production-workspace'),
+      btnNext: document.getElementById('btn-next'),
+      btnAbort: document.getElementById('btn-abort'),
+      progressBar: document.getElementById('progress-bar'),
+      modalBrand: document.getElementById('modal-brand'),
+      brandContent: document.getElementById('brand-content')
+    };
+
+    // ============================================================
+    // Initialization & Parsing
+    // ============================================================
+    function init() {
+      console.log("[wizard] Initializing...");
+      
+      // Parse URL parameters
+      const params = new URLSearchParams(window.location.search);
+      state.user = params.get('user') || 'Unknown User';
+      state.project = params.get('project') || 'Unknown Project';
+      state.media = params.get('media') || 'all';
+      state.level = params.get('level') || 'all';
+      
+      // Setup session log meta
+      state.sessionLog.user = state.user;
+      state.sessionLog.project = state.project;
+      state.sessionLog.media = state.media;
+      state.sessionLog.level = state.level;
+
+      // Parse steps range (e.g. "2-5")
+      const stepsParam = params.get('steps') || '1-14';
+      const [startStr, endStr] = stepsParam.split('-');
+      const startId = parseInt(startStr, 10) || 1;
+      const endId = parseInt(endStr, 10) || 14;
+
+      // Filter STEPS from config.js
+      state.targetSteps = STEPS.filter(s => s.id >= startId && s.id <= endId);
+      if (state.targetSteps.length === 0) {
+        alert("有効なSTEP範囲が指定されていません。");
+        return;
+      }
+
+      // Load tool links from localStorage first, then refresh from Supabase.
+      state.allToolLinks = loadToolLinksFromLocalStorage();
+      state.brandSettings = normalizeBrandSettings(typeof getBrandSettings === 'function' ? getBrandSettings() : {});
+
+      productionState = loadProductionState();
+      saveProductionState();
+
+      // Setup Header UI
+      els.displayProject.textContent = state.project;
+      els.displayUser.textContent = state.user;
+      
+      const levelLabel = LEVELS[state.level] ? LEVELS[state.level].label : state.level;
+      els.displayLevel.textContent = levelLabel;
+      
+      const mediaIconClass = MEDIA_TYPES[state.media]?.icon || 'ph-monitor';
+      els.mediaIcon.innerHTML = `<i class="ph ${mediaIconClass}"></i>`;
+
+      // Event Listeners
+      els.btnNext.addEventListener('click', handleNextStep);
+      els.btnAbort.addEventListener('click', handleAbort);
+      els.btnShowBrand.addEventListener('click', openBrandModal);
+      els.productionWorkspace.addEventListener('input', onProductionInput);
+      els.productionWorkspace.addEventListener('change', onProductionChange);
+      els.productionWorkspace.addEventListener('click', onProductionClick);
+
+      // Start first step
+      renderCurrentStep();
+      hydrateBrandSettingsFromSupabase();
+      hydrateToolLinksFromSupabase();
+    }
+
+    // ============================================================
+    // Render
+    // ============================================================
+    function renderCurrentStep() {
+      const step = state.targetSteps[state.currentIndex];
+      state.currentStepStartTime = Date.now();
+      els.stepMemo.value = ''; // Reset memo
+
+      console.log(`[wizard] Rendering step ${step.id}: ${step.title}`);
+
+      // Header info
+      els.stepBadge.textContent = `STEP ${state.currentIndex + 1} / ${state.targetSteps.length}`;
+      els.stepTitle.textContent = `${step.id}. ${step.title}`;
+      els.stepTime.textContent = step.estimatedMinutes;
+
+      // Progress bar
+      const progressPercent = (state.currentIndex / state.targetSteps.length) * 100;
+      els.progressBar.style.width = `${progressPercent}%`;
+
+      // Brand Check
+      if (step.hasBrandCheck) {
+        els.brandAlert.style.display = 'flex';
+        renderBrandContent();
+      } else {
+        els.brandAlert.style.display = 'none';
+      }
+
+      renderProductionWorkspace(step.id);
+
+      // Tool Links Filter
+      // Condition: 
+      // 1. media matches (or tool is 'all')
+      // 2. stepId matches
+      // 3. level matches (or tool is 'all' / array includes)
+      const stepTools = state.allToolLinks.filter(tool => {
+        if (tool.stepId !== step.id) return false;
+        if (tool.media !== 'all' && tool.media !== state.media) return false;
+        
+        // Handle allowedLevels (string 'all' or array)
+        if (tool.allowedLevels !== 'all') {
+           if (Array.isArray(tool.allowedLevels) && !tool.allowedLevels.includes(state.level) && state.level !== 'all') {
+             return false;
+           }
+        }
+        
+        return true;
+      });
+
+      // Render Tools
+      if (stepTools.length > 0) {
+        // Sort by order
+        stepTools.sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        els.toolsContainer.innerHTML = stepTools.map(tool => `
+          <a href="${tool.url}" target="_blank" rel="noopener noreferrer" class="tool-card">
+            <div class="tool-info">
+              <span class="tool-name">${tool.name}</span>
+              ${tool.description ? `<span class="tool-desc">${tool.description}</span>` : ''}
+            </div>
+            <div class="tool-icon"><i class="ph ph-arrow-square-out"></i></div>
+          </a>
+        `).join('');
+      } else {
+        els.toolsContainer.innerHTML = `
+          <div class="no-tools-msg">
+            この工程に登録されているツールはありません。<br>
+            手動で作業を進めてください。
+          </div>
+        `;
+      }
+
+      // Button State
+      if (state.currentIndex === state.targetSteps.length - 1) {
+        els.btnNext.innerHTML = `<span>すべての作業を完了する</span> <i class="ph ph-check-circle"></i>`;
+        els.btnNext.classList.add('is-finish');
+      } else {
+        els.btnNext.innerHTML = `<span>完了して次へ</span> <i class="ph ph-arrow-right"></i>`;
+        els.btnNext.classList.remove('is-finish');
+      }
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderCurrentStepTools() {
+      const step = state.targetSteps[state.currentIndex];
+      if (!step) return;
+
+      const stepTools = state.allToolLinks.filter(tool => {
+        if (tool.enabled === false) return false;
+        if (tool.stepId !== step.id) return false;
+        if (tool.media !== 'all' && tool.media !== state.media) return false;
+
+        if (tool.allowedLevels !== 'all') {
+           if (Array.isArray(tool.allowedLevels) && !tool.allowedLevels.includes(state.level) && state.level !== 'all') {
+             return false;
+           }
+        }
+
+        return true;
+      });
+
+      if (stepTools.length > 0) {
+        stepTools.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        els.toolsContainer.innerHTML = stepTools.map(tool => `
+          <a href="${tool.url}" target="_blank" rel="noopener noreferrer" class="tool-card">
+            <div class="tool-info">
+              <span class="tool-name">${tool.name}</span>
+              ${tool.description ? `<span class="tool-desc">${tool.description}</span>` : ''}
+            </div>
+            <div class="tool-icon"><i class="ph ph-arrow-square-out"></i></div>
+          </a>
+        `).join('');
+      } else {
+        els.toolsContainer.innerHTML = `
+          <div class="no-tools-msg">
+            縺薙・蟾･遞九↓逋ｻ骭ｲ縺輔ｌ縺ｦ縺・ｋ繝・・繝ｫ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲・br>
+            謇句虚縺ｧ菴懈･ｭ繧帝ｲ繧√※縺上□縺輔＞縲・          </div>
+        `;
+      }
+    }
+
+    function renderBrandContent() {
+      const brand = getCurrentBrandSettings();
+      els.brandContent.innerHTML = `
+        <div class="brand-section">
+          <div class="brand-section-title">プロジェクト名</div>
+          <div class="brand-section-content">${escapeHTML(brand.accountName || '')}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">コンセプト</div>
+          <div class="brand-section-content">${escapeHTML(brand.concept || '')}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">ターゲット</div>
+          <div class="brand-section-content">${escapeHTML(brand.target || '')}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">トンマナ</div>
+          <div class="brand-section-content">${escapeHTML(brand.toneAndManner || '')}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">NGワード</div>
+          <div class="brand-section-content">${escapeHTML((brand.ngWords || []).join(', '))}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">チェックポイント</div>
+          <div class="brand-section-content">${formatBrandList(brand.checkPoints || [])}</div>
+        </div>
+      `;
+    }
+
+    function renderLegacyBrandContent() {
+      // Legacy wrapper kept for compatibility.
+      els.brandContent.innerHTML = `
+        <div class="brand-section">
+          <div class="brand-section-title">コンセプト</div>
+          <div class="brand-section-content">${getCurrentBrandSettings().concept || ''}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">ターゲット</div>
+          <div class="brand-section-content">${getCurrentBrandSettings().target || ''}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">トーン＆マナー</div>
+          <div class="brand-section-content">${getCurrentBrandSettings().toneAndManner || ''}</div>
+        </div>
+        <div class="brand-section">
+          <div class="brand-section-title">NG表現</div>
+          <div class="brand-section-content">${getCurrentBrandSettings().ngWords.join(', ')}</div>
+        </div>
+      `;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    function formatBrandList(items) {
+      return (items || []).map(item => escapeHTML(item)).filter(Boolean).join('<br>');
+    }
+
+    function normalizeBrandSettings(data = {}) {
+      const fallback = typeof BRAND_DB_DEFAULT === 'object' ? BRAND_DB_DEFAULT : {};
+      const source = { ...fallback, ...(data || {}) };
+      return {
+        accountName: source.accountName || source.account_name || '',
+        concept: source.concept || source.worldview || '',
+        target: source.target || '',
+        toneAndManner: source.toneAndManner || source.tone_and_manner || source.temperature || source.tempo || '',
+        ngWords: Array.isArray(source.ngWords) ? source.ngWords : (Array.isArray(source.ng_words) ? source.ng_words : []),
+        checkPoints: Array.isArray(source.checkPoints) ? source.checkPoints : (Array.isArray(source.check_points) ? source.check_points : [])
+      };
+    }
+
+    function getCurrentBrandSettings() {
+      if (state.brandSettings) return state.brandSettings;
+      return normalizeBrandSettings(typeof getBrandSettings === 'function' ? getBrandSettings() : {});
+    }
+
+    function isBrandSettingsSupabaseConfigured() {
+      return Boolean(
+        window.supabase &&
+        SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+        SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+      );
+    }
+
+    function getBrandSettingsSupabaseClient() {
+      if (!isBrandSettingsSupabaseConfigured()) return null;
+      if (!brandSettingsSupabaseClient) {
+        brandSettingsSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return brandSettingsSupabaseClient;
+    }
+
+    function mapBrandRowToSettings(row) {
+      if (!row) return null;
+      return normalizeBrandSettings({
+        accountName: row.account_name || '',
+        concept: row.concept || '',
+        target: row.target || '',
+        toneAndManner: row.tone_and_manner || '',
+        ngWords: Array.isArray(row.ng_words) ? row.ng_words : [],
+        checkPoints: Array.isArray(row.check_points) ? row.check_points : []
+      });
+    }
+
+    async function loadBrandSettingsFromSupabase() {
+      const client = getBrandSettingsSupabaseClient();
+      if (!client) return null;
+
+      const { data, error } = await client
+        .from(BRAND_SETTINGS_TABLE)
+        .select('account_name, concept, target, tone_and_manner, ng_words, check_points')
+        .eq('project_key', BRAND_SETTINGS_PROJECT_KEY)
+        .maybeSingle();
+
+      if (error) throw error;
+      return mapBrandRowToSettings(data);
+    }
+
+    async function hydrateBrandSettingsFromSupabase() {
+      try {
+        const cloudSettings = await loadBrandSettingsFromSupabase();
+        if (cloudSettings) {
+          state.brandSettings = cloudSettings;
+          if (typeof setBrandSettings === 'function') setBrandSettings(cloudSettings);
+        } else {
+          state.brandSettings = normalizeBrandSettings(typeof getBrandSettings === 'function' ? getBrandSettings() : {});
+        }
+      } catch (e) {
+        console.error("[wizard] brand settings cloud load failed:", e);
+        state.brandSettings = normalizeBrandSettings(typeof getBrandSettings === 'function' ? getBrandSettings() : {});
+      }
+
+      const step = state.targetSteps[state.currentIndex];
+      if (step?.hasBrandCheck || els.modalBrand.style.display === 'flex') {
+        renderBrandContent();
+      }
+    }
+
+    // ============================================================
+    // Production State
+    // ============================================================
+    function createDefaultProductionState() {
+      return {
+        postingFrequency: 3,
+        characters: [],
+        videos: [createDefaultVideo(1), createDefaultVideo(2), createDefaultVideo(3)]
+      };
+    }
+
+    function createDefaultVideo(number) {
+      return {
+        video_id: `video_${number}`,
+        linked_character_id: "",
+        script_title: "",
+        hook: "",
+        full_dialogue: "",
+        caption_dialogue: "",
+        voice_dialogue: "",
+        scene_description_en: "",
+        visual_prompt: "",
+        memo: "",
+        scenes: []
+      };
+    }
+
+    function createDefaultScene(videoIndex) {
+      const video = productionState.videos[videoIndex];
+      const sceneNumber = video.scenes.length + 1;
+      return {
+        scene_id: `${video.video_id}_scene_${Date.now().toString(36)}`,
+        scene_number: sceneNumber,
+        character_name: "",
+        scene_description_en: "",
+        visual_prompt: "",
+        dialogue: "",
+        caption_dialogue: "",
+        voice_dialogue: "",
+        duration_memo: "",
+        video_output_url: "",
+        voice_output_url: "",
+        is_video_done: false,
+        is_voice_done: false
+      };
+    }
+
+    function loadProductionState() {
+      try {
+        const raw = localStorage.getItem(PRODUCTION_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return ensureProductionState(parsed);
+      } catch (e) {
+        console.error("[wizard] Failed to parse production state:", e);
+        return createDefaultProductionState();
+      }
+    }
+
+    function saveProductionState() {
+      localStorage.setItem(PRODUCTION_STORAGE_KEY, JSON.stringify(productionState));
+    }
+
+    function ensureProductionState(value) {
+      const next = createDefaultProductionState();
+      if (value && typeof value === 'object') {
+        next.postingFrequency = clampPostingFrequency(value.postingFrequency || next.postingFrequency);
+        next.characters = Array.isArray(value.characters) ? value.characters : [];
+        if (Array.isArray(value.videos)) {
+          value.videos.slice(0, 3).forEach((video, index) => {
+            next.videos[index] = {
+              ...createDefaultVideo(index + 1),
+              ...video,
+              video_id: `video_${index + 1}`,
+              scenes: Array.isArray(video.scenes) ? video.scenes : []
+            };
+            next.videos[index].scenes.forEach((scene, sceneIndex) => {
+              scene.scene_number = sceneIndex + 1;
+            });
+          });
+        }
+      }
+      return next;
+    }
+
+    function isToolLinksSupabaseConfigured() {
+      return Boolean(
+        window.supabase &&
+        SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+        SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+      );
+    }
+
+    function getToolLinksSupabaseClient() {
+      if (!isToolLinksSupabaseConfigured()) return null;
+      if (!toolLinksSupabaseClient) {
+        toolLinksSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return toolLinksSupabaseClient;
+    }
+
+    function loadToolLinksFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.TOOL_LINKS);
+        return normalizeToolLinks(raw ? JSON.parse(raw) : []);
+      } catch (e) {
+        console.error("[wizard] Failed to parse tool links:", e);
+        return [];
+      }
+    }
+
+    function mapToolRowsToLinks(rows) {
+      const links = {};
+      (rows || []).forEach(row => {
+        const stepId = Number(row.step_id);
+        const media = row.media || 'other';
+        const stepDef = STEPS.find(s => s.id === stepId);
+        if (!links[stepId]) {
+          links[stepId] = {
+            stepId,
+            stepTitle: row.step_title || (stepDef ? stepDef.title : "Unknown"),
+            tools: {}
+          };
+        }
+        if (!links[stepId].tools[media]) links[stepId].tools[media] = [];
+        links[stepId].tools[media].push({
+          id: row.id,
+          name: row.name || '',
+          url: row.url || '',
+          category: row.category || '',
+          note: row.note || '',
+          order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : links[stepId].tools[media].length,
+          enabled: row.enabled !== false
+        });
+      });
+      Object.values(links).forEach(stepLinks => {
+        Object.values(stepLinks.tools || {}).forEach(tools => {
+          tools.sort((a, b) => (a.order || 0) - (b.order || 0));
+          tools.forEach((tool, index) => { tool.order = index; });
+        });
+      });
+      return links;
+    }
+
+    async function loadToolLinksFromSupabase() {
+      const client = getToolLinksSupabaseClient();
+      if (!client) return null;
+
+      const { data, error } = await client
+        .from(TOOL_LINKS_TABLE)
+        .select('id, step_id, step_title, media, name, url, category, note, sort_order, enabled')
+        .eq('project_key', TOOL_LINKS_PROJECT_KEY)
+        .order('step_id', { ascending: true })
+        .order('media', { ascending: true })
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      return mapToolRowsToLinks(data);
+    }
+
+    async function hydrateToolLinksFromSupabase() {
+      try {
+        const cloudLinks = await loadToolLinksFromSupabase();
+        if (!cloudLinks) return;
+        localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(cloudLinks));
+        state.allToolLinks = normalizeToolLinks(cloudLinks);
+        renderCurrentStepTools();
+      } catch (e) {
+        console.error("[wizard] tool links cloud load failed:", e);
+        state.allToolLinks = loadToolLinksFromLocalStorage();
+        renderCurrentStepTools();
+      }
+    }
+
+    function normalizeToolLinks(links) {
+      if (Array.isArray(links)) return links.filter(tool => tool.enabled !== false);
+      return Object.values(links || {}).flatMap(stepLinks => {
+        if (!stepLinks || !stepLinks.tools) return [];
+        return Object.entries(stepLinks.tools).flatMap(([media, tools]) => {
+          return (tools || []).filter(tool => tool.enabled !== false).map(tool => ({
+            ...tool,
+            stepId: stepLinks.stepId,
+            media,
+            description: tool.note || tool.description || "",
+            allowedLevels: "all"
+          }));
+        });
+      });
+    }
+
+    function clampPostingFrequency(value) {
+      const number = Number(value);
+      if (Number.isNaN(number)) return 3;
+      return Math.min(7, Math.max(3, number));
+    }
+
+    function getTodayToken() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}${month}${day}`;
+    }
+
+    function createCharacter(index) {
+      return {
+        character_id: `AIV-${getTodayToken()}-C${String(index + 1).padStart(2, '0')}`,
+        character_name: "",
+        concept: "",
+        atmosphere_memo: "",
+        script_idea_memo: "",
+        created_date: new Date().toISOString().slice(0, 10),
+        drive_url: "",
+        is_selected: false
+      };
+    }
+
+    function ensureCharacterCards() {
+      const targetCount = productionState.postingFrequency;
+      let hasAdded = false;
+      while (productionState.characters.length < targetCount) {
+        productionState.characters.push(createCharacter(productionState.characters.length));
+        hasAdded = true;
+      }
+      if (hasAdded) saveProductionState();
+    }
+
+    function renumberScenes(videoIndex) {
+      const video = productionState.videos[videoIndex];
+      if (!video || !Array.isArray(video.scenes)) return;
+      video.scenes.forEach((scene, index) => {
+        scene.scene_number = index + 1;
+      });
+    }
+
+    // ============================================================
+    // Production Render
+    // ============================================================
+    function renderProductionWorkspace(stepId) {
+      if (stepId < 3 || stepId > 7) {
+        els.productionWorkspace.classList.remove('is-visible');
+        els.productionWorkspace.innerHTML = '';
+        return;
+      }
+
+      if (stepId === 4) ensureCharacterCards();
+      els.productionWorkspace.classList.add('is-visible');
+
+      if (stepId === 3) els.productionWorkspace.innerHTML = renderStep3Production();
+      if (stepId === 4) els.productionWorkspace.innerHTML = renderStep4Production();
+      if (stepId === 5) els.productionWorkspace.innerHTML = renderStep5Production();
+      if (stepId === 6) els.productionWorkspace.innerHTML = renderStep6Production();
+      if (stepId === 7) els.productionWorkspace.innerHTML = renderStep7Production();
+    }
+
+    function renderStep3Production() {
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-calendar-check"></i> 投稿頻度</h2>
+          <label class="production-label">
+            週間投稿本数
+            <select class="production-select" data-production-field="postingFrequency">
+              ${[3, 4, 5, 6, 7].map(value => `
+                <option value="${value}" ${productionState.postingFrequency === value ? 'selected' : ''}>週${value}本</option>
+              `).join('')}
+            </select>
+          </label>
+          <div class="production-note">この値はSTEP 4の推奨キャラ案数に反映されます。</div>
+        </section>
+      `;
+    }
+
+    function renderStep4Production() {
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-user-focus"></i> キャラ案管理</h2>
+          <div class="production-note">現在の投稿頻度: 週${productionState.postingFrequency}本 / 推奨キャラ案数: ${productionState.postingFrequency}件</div>
+          <div class="production-actions">
+            <button class="production-btn" data-action="add-character"><i class="ph ph-plus"></i> キャラ案を追加</button>
+          </div>
+          ${productionState.characters.map((character, index) => renderCharacterCard(character, index)).join('')}
+        </section>
+      `;
+    }
+
+    function renderCharacterCard(character, index) {
+      return `
+        <div class="production-card">
+          <div class="production-actions">
+            <strong>キャラ案 ${index + 1}</strong>
+            <button class="production-btn is-danger" data-action="delete-character" data-character-index="${index}">削除</button>
+          </div>
+          <div class="production-row">
+            ${renderInput('キャラID', character.character_id, 'character', 'character_id', index)}
+            ${renderInput('キャラ名', character.character_name, 'character', 'character_name', index)}
+            ${renderInput('一言コンセプト', character.concept, 'character', 'concept', index)}
+            ${renderInput('作成日', character.created_date, 'character', 'created_date', index, 'date')}
+          </div>
+          ${renderTextarea('雰囲気メモ', character.atmosphere_memo, 'character', 'atmosphere_memo', index)}
+          ${renderTextarea('台本ひらめきメモ', character.script_idea_memo, 'character', 'script_idea_memo', index)}
+          ${renderInput('Google Drive保存先URL', character.drive_url, 'character', 'drive_url', index)}
+          <label class="production-check">
+            <input type="checkbox" data-kind="character" data-field="is_selected" data-character-index="${index}" ${character.is_selected ? 'checked' : ''}>
+            採用する
+          </label>
+        </div>
+      `;
+    }
+
+    function renderStep5Production() {
+      const activeIndex = productionUiState.activeVideoByStep[5];
+      const video = productionState.videos[activeIndex];
+      const selectedCharacters = productionState.characters.filter(character => character.is_selected);
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-film-script"></i> 台本・フレーム管理</h2>
+          ${renderVideoTabs(5)}
+          ${selectedCharacters.length === 0 ? `<div class="production-note">採用キャラが未選択です。STEP 4で採用キャラを選ぶと、ここで選択できるようになります。</div>` : ''}
+          <label class="production-label">
+            採用キャラ
+            <select class="production-select" data-kind="video" data-field="linked_character_id" data-video-index="${activeIndex}">
+              <option value="">未選択</option>
+              ${selectedCharacters.map(character => `
+                <option value="${escapeHtml(character.character_id)}" ${video.linked_character_id === character.character_id ? 'selected' : ''}>
+                  ${escapeHtml(character.character_name || character.character_id)}
+                </option>
+              `).join('')}
+            </select>
+          </label>
+          <div class="production-row">
+            ${renderInput('動画ID', video.video_id, 'video', 'video_id', activeIndex, 'text', true)}
+            ${renderInput('台本タイトル', video.script_title, 'video', 'script_title', activeIndex)}
+          </div>
+          ${renderTextarea('フック', video.hook, 'video', 'hook', activeIndex)}
+          ${renderTextarea('セリフ全文', video.full_dialogue, 'video', 'full_dialogue', activeIndex)}
+          ${renderTextarea('テロップ用セリフ', video.caption_dialogue, 'video', 'caption_dialogue', activeIndex)}
+          ${renderTextarea('音声用セリフ', video.voice_dialogue, 'video', 'voice_dialogue', activeIndex)}
+          ${renderTextarea('シーン描写英語', video.scene_description_en, 'video', 'scene_description_en', activeIndex)}
+          ${renderTextarea('映像用統合プロンプト', video.visual_prompt, 'video', 'visual_prompt', activeIndex)}
+          ${renderTextarea('メモ', video.memo, 'video', 'memo', activeIndex)}
+          <div class="copy-actions">
+            ${renderCopyButton('映像生成用コピー', 'videoPrompt', activeIndex)}
+            ${renderCopyButton('セリフコピー', 'fullDialogue', activeIndex)}
+            ${renderCopyButton('テロップコピー', 'captionDialogue', activeIndex)}
+            ${renderCopyButton('音声コピー', 'voiceDialogue', activeIndex)}
+          </div>
+          <div class="production-actions">
+            <button class="production-btn" data-action="add-scene" data-video-index="${activeIndex}"><i class="ph ph-plus"></i> シーンを追加</button>
+          </div>
+          ${video.scenes.map((scene, sceneIndex) => renderStep5Scene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">シーンはまだありません。</div>`}
+        </section>
+      `;
+    }
+
+    function renderStep5Scene(scene, videoIndex, sceneIndex) {
+      return `
+        <div class="production-card">
+          <div class="production-actions">
+            <strong>シーン ${scene.scene_number}</strong>
+            <button class="production-btn is-danger" data-action="delete-scene" data-video-index="${videoIndex}" data-scene-index="${sceneIndex}">削除</button>
+          </div>
+          ${renderTextarea('シーン描写英語', scene.scene_description_en, 'scene', 'scene_description_en', videoIndex, sceneIndex)}
+          ${renderTextarea('映像用統合プロンプト', scene.visual_prompt, 'scene', 'visual_prompt', videoIndex, sceneIndex)}
+          ${renderTextarea('セリフ', scene.dialogue, 'scene', 'dialogue', videoIndex, sceneIndex)}
+          ${renderTextarea('テロップ用セリフ', scene.caption_dialogue, 'scene', 'caption_dialogue', videoIndex, sceneIndex)}
+          ${renderTextarea('音声用セリフ', scene.voice_dialogue, 'scene', 'voice_dialogue', videoIndex, sceneIndex)}
+          ${renderInput('推奨尺メモ', scene.duration_memo, 'scene', 'duration_memo', videoIndex, 'text', false, sceneIndex)}
+          <div class="copy-actions">
+            ${renderCopyButton('映像生成用コピー', 'sceneVideoPrompt', videoIndex, sceneIndex)}
+            ${renderCopyButton('セリフコピー', 'sceneDialogue', videoIndex, sceneIndex)}
+            ${renderCopyButton('テロップコピー', 'sceneCaption', videoIndex, sceneIndex)}
+            ${renderCopyButton('音声コピー', 'sceneVoice', videoIndex, sceneIndex)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep6Production() {
+      const activeIndex = productionUiState.activeVideoByStep[6];
+      const video = productionState.videos[activeIndex];
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-video-camera"></i> 映像・動画素材生成</h2>
+          ${renderVideoTabs(6)}
+          ${video.scenes.map((scene, sceneIndex) => renderVideoScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
+        </section>
+      `;
+    }
+
+    function renderVideoScene(scene, videoIndex, sceneIndex) {
+      return `
+        <div class="production-card">
+          <strong>シーン ${scene.scene_number}</strong>
+          <div class="readonly-block">${escapeHtml(buildSceneVideoPrompt(scene)) || '映像用コピーの元になる情報が未入力です。'}</div>
+          <div class="copy-actions">
+            ${renderCopyButton('映像用コピー', 'sceneVideoPrompt', videoIndex, sceneIndex, true)}
+            ${renderCopyButton('シーン描写のみコピー', 'sceneDescription', videoIndex, sceneIndex)}
+          </div>
+          <label class="production-check">
+            <input type="checkbox" data-kind="scene" data-field="is_video_done" data-video-index="${videoIndex}" data-scene-index="${sceneIndex}" ${scene.is_video_done ? 'checked' : ''}>
+            映像生成完了
+          </label>
+          ${renderInput('出力ファイルURL', scene.video_output_url, 'scene', 'video_output_url', videoIndex, 'text', false, sceneIndex)}
+        </div>
+      `;
+    }
+
+    function renderStep7Production() {
+      const activeIndex = productionUiState.activeVideoByStep[7];
+      const video = productionState.videos[activeIndex];
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-microphone-stage"></i> ナレーション・音声生成</h2>
+          ${renderVideoTabs(7)}
+          ${video.scenes.map((scene, sceneIndex) => renderVoiceScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
+        </section>
+      `;
+    }
+
+    function renderVoiceScene(scene, videoIndex, sceneIndex) {
+      return `
+        <div class="production-card">
+          <strong>シーン ${scene.scene_number}</strong>
+          <div class="readonly-block">${escapeHtml(scene.voice_dialogue || scene.dialogue) || '音声用セリフが未入力です。'}</div>
+          <div class="copy-actions">
+            ${renderCopyButton('音声コピー', 'sceneVoice', videoIndex, sceneIndex, true)}
+            ${renderCopyButton('セリフコピー', 'sceneDialogue', videoIndex, sceneIndex)}
+          </div>
+          <label class="production-check">
+            <input type="checkbox" data-kind="scene" data-field="is_voice_done" data-video-index="${videoIndex}" data-scene-index="${sceneIndex}" ${scene.is_voice_done ? 'checked' : ''}>
+            音声生成完了
+          </label>
+          ${renderInput('音声ファイルURL', scene.voice_output_url, 'scene', 'voice_output_url', videoIndex, 'text', false, sceneIndex)}
+        </div>
+      `;
+    }
+
+    function renderVideoTabs(stepId) {
+      return `
+        <div class="production-tabs">
+          ${productionState.videos.map((video, index) => `
+            <button class="production-tab ${productionUiState.activeVideoByStep[stepId] === index ? 'is-active' : ''}" data-action="select-video" data-step-id="${stepId}" data-video-index="${index}">
+              動画ID ${index + 1}
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderInput(label, value, kind, field, index, type = 'text', isReadonly = false, sceneIndex = null) {
+      return `
+        <label class="production-label">
+          ${label}
+          <input class="production-input" type="${type}" value="${escapeHtml(value || '')}" data-kind="${kind}" data-field="${field}" ${kind === 'character' ? `data-character-index="${index}"` : `data-video-index="${index}"`} ${sceneIndex !== null ? `data-scene-index="${sceneIndex}"` : ''} ${isReadonly ? 'readonly' : ''}>
+        </label>
+      `;
+    }
+
+    function renderTextarea(label, value, kind, field, index, sceneIndex = null) {
+      return `
+        <label class="production-label">
+          ${label}
+          <textarea class="production-textarea" data-kind="${kind}" data-field="${field}" ${kind === 'character' ? `data-character-index="${index}"` : `data-video-index="${index}"`} ${sceneIndex !== null ? `data-scene-index="${sceneIndex}"` : ''}>${escapeHtml(value || '')}</textarea>
+        </label>
+      `;
+    }
+
+    function renderCopyButton(label, type, videoIndex, sceneIndex = null, isPrimary = false) {
+      return `
+        <button class="copy-btn ${isPrimary ? 'is-primary' : ''}" data-action="copy" data-copy-type="${type}" data-video-index="${videoIndex}" ${sceneIndex !== null ? `data-scene-index="${sceneIndex}"` : ''}>${label}</button>
+        <span class="copy-feedback" aria-live="polite"></span>
+      `;
+    }
+
+    // ============================================================
+    // Production Events
+    // ============================================================
+    function onProductionInput(event) {
+      updateProductionValue(event.target);
+    }
+
+    function onProductionChange(event) {
+      updateProductionValue(event.target);
+      if (event.target.dataset.productionField === 'postingFrequency') {
+        ensureCharacterCards();
+        saveProductionState();
+      }
+    }
+
+    function onProductionClick(event) {
+      const button = event.target.closest('button');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (!action) return;
+
+      if (action === 'add-character') {
+        productionState.characters.push(createCharacter(productionState.characters.length));
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
+      }
+      if (action === 'delete-character') {
+        const index = Number(button.dataset.characterIndex);
+        if (confirm('このキャラ案を削除しますか？')) {
+          productionState.characters.splice(index, 1);
+          saveProductionState();
+          renderProductionWorkspace(getCurrentStepId());
+        }
+      }
+      if (action === 'select-video') {
+        productionUiState.activeVideoByStep[button.dataset.stepId] = Number(button.dataset.videoIndex);
+        renderProductionWorkspace(getCurrentStepId());
+      }
+      if (action === 'add-scene') {
+        const videoIndex = Number(button.dataset.videoIndex);
+        productionState.videos[videoIndex].scenes.push(createDefaultScene(videoIndex));
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
+      }
+      if (action === 'delete-scene') {
+        const videoIndex = Number(button.dataset.videoIndex);
+        const sceneIndex = Number(button.dataset.sceneIndex);
+        if (confirm('このシーンを削除しますか？')) {
+          productionState.videos[videoIndex].scenes.splice(sceneIndex, 1);
+          renumberScenes(videoIndex);
+          saveProductionState();
+          renderProductionWorkspace(getCurrentStepId());
+        }
+      }
+      if (action === 'copy') {
+        const text = getCopyText(button.dataset.copyType, Number(button.dataset.videoIndex), button.dataset.sceneIndex === undefined ? null : Number(button.dataset.sceneIndex));
+        copyText(text, button.nextElementSibling);
+      }
+    }
+
+    function updateProductionValue(target) {
+      if (!target.dataset) return;
+
+      if (target.dataset.productionField === 'postingFrequency') {
+        productionState.postingFrequency = clampPostingFrequency(target.value);
+        saveProductionState();
+        return;
+      }
+
+      const kind = target.dataset.kind;
+      const field = target.dataset.field;
+      if (!kind || !field) return;
+      const value = target.type === 'checkbox' ? target.checked : target.value;
+
+      if (kind === 'character') {
+        const character = productionState.characters[Number(target.dataset.characterIndex)];
+        if (character) character[field] = value;
+      }
+      if (kind === 'video') {
+        const video = productionState.videos[Number(target.dataset.videoIndex)];
+        if (video && field !== 'video_id') video[field] = value;
+      }
+      if (kind === 'scene') {
+        const video = productionState.videos[Number(target.dataset.videoIndex)];
+        const scene = video?.scenes[Number(target.dataset.sceneIndex)];
+        if (scene) scene[field] = value;
+      }
+      saveProductionState();
+    }
+
+    function getCurrentStepId() {
+      return state.targetSteps[state.currentIndex]?.id;
+    }
+
+    // ============================================================
+    // Copy Helpers
+    // ============================================================
+    async function copyText(text, feedbackElement) {
+      try {
+        await navigator.clipboard.writeText(text || '');
+        showCopyFeedback(feedbackElement, 'コピー済み', 'is-success');
+      } catch (e) {
+        showCopyFeedback(feedbackElement, 'コピーできませんでした。手動で選択してコピーしてください。', 'is-error');
+      }
+    }
+
+    function showCopyFeedback(element, message, className) {
+      if (!element) return;
+      element.textContent = message;
+      element.classList.remove('is-success', 'is-error');
+      element.classList.add(className);
+      setTimeout(() => {
+        element.textContent = '';
+        element.classList.remove(className);
+      }, 2500);
+    }
+
+    function getCopyText(type, videoIndex, sceneIndex) {
+      const video = productionState.videos[videoIndex];
+      const scene = sceneIndex === null ? null : video?.scenes[sceneIndex];
+      const map = {
+        videoPrompt: buildVideoPrompt(video),
+        fullDialogue: video?.full_dialogue || '',
+        captionDialogue: video?.caption_dialogue || '',
+        voiceDialogue: video?.voice_dialogue || '',
+        sceneVideoPrompt: buildSceneVideoPrompt(scene),
+        sceneDescription: scene?.scene_description_en || '',
+        sceneDialogue: scene?.dialogue || '',
+        sceneCaption: scene?.caption_dialogue || '',
+        sceneVoice: scene?.voice_dialogue || scene?.dialogue || ''
+      };
+      return map[type] || '';
+    }
+
+    function buildVideoPrompt(video) {
+      if (!video) return '';
+      const parts = [video.scene_description_en, video.visual_prompt].filter(Boolean);
+      const dialogue = video.full_dialogue ? `Dialogue: ${video.full_dialogue}` : '';
+      return [...parts, dialogue, 'high quality, 9:16'].filter(Boolean).join('\n');
+    }
+
+    function buildSceneVideoPrompt(scene) {
+      if (!scene) return '';
+      const parts = [scene.scene_description_en, scene.visual_prompt].filter(Boolean);
+      const dialogue = scene.dialogue ? `Dialogue: ${scene.dialogue}` : '';
+      return [...parts, dialogue, 'high quality, 9:16'].filter(Boolean).join('\n');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ============================================================
+    // Logic & Flow
+    // ============================================================
+    function handleNextStep() {
+      saveCurrentStepLog();
+
+      if (state.currentIndex < state.targetSteps.length - 1) {
+        state.currentIndex++;
+        renderCurrentStep();
+      } else {
+        finishSession('completed');
+      }
+    }
+
+    function handleAbort() {
+      if (confirm('現在の作業を中断し、ここまでの記録を保存して終了しますか？')) {
+        saveCurrentStepLog();
+        finishSession('aborted');
+      }
+    }
+
+    function saveCurrentStepLog() {
+      const step = state.targetSteps[state.currentIndex];
+      state.sessionLog.steps.push({
+        stepId: step.id,
+        stepTitle: step.title,
+        startTime: state.currentStepStartTime,
+        endTime: Date.now(),
+        memo: els.stepMemo.value.trim()
+      });
+    }
+
+    function finishSession(status) {
+      console.log(`[wizard] Finishing session with status: ${status}`);
+      state.sessionLog.status = status;
+      state.sessionLog.endTime = Date.now();
+
+      // Save to localStorage
+      try {
+        let sessions = [];
+        const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
+        if (raw) sessions = JSON.parse(raw);
+        
+        sessions.push(state.sessionLog);
+        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(sessions));
+      } catch (e) {
+        console.error("[wizard] Failed to save session log:", e);
+      }
+
+      // 最後のプログレスバーを100%にする
+      els.progressBar.style.width = `100%`;
+
+      // 遷移前に少し待つ
+      setTimeout(() => {
+        window.location.href = 'log.html';
+      }, 500);
+    }
+
+    // ============================================================
+    // Modals
+    // ============================================================
+    function openBrandModal() {
+      els.modalBrand.classList.add('is-open');
+    }
+    function closeBrandModal() {
+      els.modalBrand.classList.remove('is-open');
+    }
+    
+    // Close modal when clicking outside
+    els.modalBrand.addEventListener('click', (e) => {
+      if (e.target === els.modalBrand) closeBrandModal();
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

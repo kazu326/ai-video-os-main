@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI動画事業OS 管理画面</title>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    /* ============================================================
+       CSS Variables
+    ============================================================ */
+    :root {
+      --color-bg: #101011;
+      --color-surface: #171717;
+      --color-surface-2: #1f1f20;
+      --color-border: rgba(255,255,255,0.08);
+      --color-text: #f5f5f5;
+      --color-text-muted: #888888;
+      --color-primary: #4f98a3;
+      --color-primary-dim: rgba(79,152,163,0.15);
+      --color-success: #6daa45;
+      --color-error: #dd6974;
+      --color-warning: #e8a838;
+      --color-instagram: #E1306C;
+      --color-tiktok: #69C9D0;
+      --color-youtube: #FF0000;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px;
+      --space-4: 16px; --space-6: 24px; --space-8: 32px;
+      --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+      --transition: 180ms cubic-bezier(0.16,1,0.3,1);
+    }
+
+    /* ============================================================
+       Base
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+    input, select, button, textarea { font-family: inherit; font-size: 1rem; }
+    button { cursor: pointer; border: none; background: none; color: inherit; transition: all var(--transition); }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       Layout
+    ============================================================ */
+    .app-container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: var(--space-4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: var(--space-4);
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+    .btn-home {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      text-decoration: none;
+    }
+    .btn-home:hover { color: var(--color-primary); text-decoration: none; }
+
+    /* ============================================================
+       Auth View
+    ============================================================ */
+    .auth-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: var(--space-8) 0;
+    }
+    .auth-input-group {
+      display: flex;
+      gap: var(--space-2);
+      width: 100%;
+      max-width: 320px;
+    }
+    .text-input {
+      flex: 1;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+    }
+    .text-input:focus { outline: none; border-color: var(--color-primary); }
+    .btn-primary {
+      background-color: var(--color-primary);
+      color: #fff;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm);
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+
+    /* ============================================================
+       Main View — Page Tabs（ツール管理 / ブランド設定）
+    ============================================================ */
+    .main-view { display: none; flex-direction: column; gap: var(--space-6); }
+
+    .page-tabs {
+      display: flex;
+      gap: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 0;
+      margin-bottom: var(--space-2);
+    }
+    .page-tab-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      background: none;
+      color: var(--color-text-muted);
+      border: 1px solid transparent;
+      border-bottom: none;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      margin-bottom: -1px;
+    }
+    .page-tab-btn.is-active {
+      color: var(--color-text);
+      background-color: var(--color-surface);
+      border-color: var(--color-border);
+      border-bottom-color: var(--color-surface);
+    }
+    .page-tab-btn:hover:not(.is-active) { color: var(--color-text); }
+
+    /* ============================================================
+       Tool Management Panel
+    ============================================================ */
+    .tool-panel { display: flex; flex-direction: column; gap: var(--space-4); }
+    .controls-panel { display: flex; flex-direction: column; gap: var(--space-4); }
+    .select-input {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      width: 100%;
+      appearance: none;
+    }
+    .tabs {
+      display: flex;
+      gap: var(--space-2);
+      overflow-x: auto;
+      padding-bottom: var(--space-2);
+    }
+    .tab-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
+      background-color: var(--color-surface);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      border: 1px solid var(--color-border);
+    }
+    .tab-btn.is-active {
+      background-color: var(--color-surface-2);
+      color: var(--color-text);
+      border-color: var(--color-text);
+    }
+    .tool-list { display: flex; flex-direction: column; gap: var(--space-3); }
+    .tool-item {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .tool-item.is-disabled { opacity: 0.5; }
+    .tool-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .tool-title { font-weight: bold; display: flex; align-items: center; gap: var(--space-2); }
+    .tool-url { font-size: 0.875rem; color: var(--color-text-muted); word-break: break-all; }
+    .tool-note {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      background: var(--color-bg);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+    .tool-actions {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--color-border);
+      flex-wrap: wrap;
+    }
+    .btn-icon {
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.875rem;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+    }
+    .btn-icon:hover { color: var(--color-text); background-color: var(--color-surface-2); }
+    .btn-icon.is-danger:hover { color: var(--color-error); border-color: var(--color-error); }
+    .btn-add-tool {
+      width: 100%;
+      padding: var(--space-3);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+    .btn-add-tool:hover { color: var(--color-text); border-color: var(--color-text); }
+    .footer-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-top: var(--space-8);
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-4);
+    }
+    .data-actions { display: flex; gap: var(--space-3); }
+    .btn-secondary {
+      flex: 1;
+      padding: var(--space-2) var(--space-3);
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .btn-secondary:hover { background-color: var(--color-surface-2); }
+
+    /* ============================================================
+       Brand Settings Panel
+    ============================================================ */
+    .brand-panel { display: none; flex-direction: column; gap: var(--space-6); }
+    .brand-panel.is-active { display: flex; }
+
+    .brand-section {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .brand-section-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
+    .form-label { font-size: 0.875rem; color: var(--color-text-muted); }
+    .form-input {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.9375rem;
+      width: 100%;
+    }
+    .form-input:focus { outline: none; border-color: var(--color-primary); }
+    .form-textarea {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.9375rem;
+      width: 100%;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .form-textarea:focus { outline: none; border-color: var(--color-primary); }
+    .form-hint { font-size: 0.8125rem; color: var(--color-text-muted); }
+
+    /* NGワードタグUI */
+    .ng-tag-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      min-height: 44px;
+      align-items: center;
+    }
+    .ng-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 2px 10px 2px 8px;
+      font-size: 0.875rem;
+      color: var(--color-error);
+    }
+    .ng-tag button {
+      color: var(--color-text-muted);
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .ng-tag button:hover { color: var(--color-error); }
+    .ng-add-row {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .ng-add-input {
+      flex: 1;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.9375rem;
+    }
+    .ng-add-input:focus { outline: none; border-color: var(--color-error); }
+    .btn-ng-add {
+      padding: var(--space-2) var(--space-3);
+      background-color: rgba(221,105,116,0.15);
+      border: 1px solid var(--color-error);
+      border-radius: var(--radius-sm);
+      color: var(--color-error);
+      font-size: 0.875rem;
+      white-space: nowrap;
+    }
+    .btn-ng-add:hover { background-color: rgba(221,105,116,0.25); }
+
+    /* チェックポイントリスト */
+    .checkpoint-list { display: flex; flex-direction: column; gap: var(--space-2); }
+    .checkpoint-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .checkpoint-item input[type="text"] {
+      flex: 1;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+    }
+    .checkpoint-item input[type="text"]:focus { outline: none; border-color: var(--color-primary); }
+    .btn-cp-delete {
+      color: var(--color-text-muted);
+      font-size: 1.125rem;
+      padding: var(--space-1);
+      flex-shrink: 0;
+    }
+    .btn-cp-delete:hover { color: var(--color-error); }
+    .btn-cp-add {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      padding: var(--space-2) var(--space-3);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-sm);
+      width: 100%;
+      justify-content: center;
+    }
+    .btn-cp-add:hover { color: var(--color-text); border-color: var(--color-text); }
+
+    /* 保存ボタン */
+    .brand-save-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      padding-top: var(--space-2);
+    }
+    .btn-brand-save {
+      background-color: var(--color-primary);
+      color: #fff;
+      padding: var(--space-2) var(--space-6);
+      border-radius: var(--radius-sm);
+      font-weight: bold;
+      font-size: 0.9375rem;
+    }
+    .btn-brand-save:hover { opacity: 0.9; }
+
+    /* ブランド設定バナー（ウィザード側でも使用するプレビュー） */
+    .brand-preview-banner {
+      background: var(--color-primary-dim);
+      border: 1px solid rgba(79,152,163,0.3);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .brand-preview-label {
+      font-size: 0.75rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .brand-preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2) var(--space-4);
+      font-size: 0.875rem;
+    }
+    .brand-preview-item dt { color: var(--color-text-muted); }
+    .brand-preview-item dd { color: var(--color-text); }
+
+    /* ============================================================
+       Modal
+    ============================================================ */
+    .modal-overlay {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      background-color: rgba(0,0,0,0.8);
+      z-index: 100; display: none;
+      align-items: center; justify-content: center;
+      padding: var(--space-4);
+    }
+    .modal-content {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      width: 100%; max-width: 400px;
+      padding: var(--space-6);
+      z-index: 200;
+      display: flex; flex-direction: column; gap: var(--space-4);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header { font-size: 1.25rem; font-weight: bold; }
+    .modal-actions {
+      display: flex; justify-content: flex-end;
+      gap: var(--space-3); margin-top: var(--space-2);
+    }
+
+    /* ============================================================
+       Toast
+    ============================================================ */
+    .toast {
+      position: fixed; bottom: var(--space-6); left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--color-surface-2);
+      color: var(--color-text);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      z-index: 300; opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none; white-space: nowrap;
+    }
+    .toast.is-visible { opacity: 1; }
+    .toast.is-success { border-color: var(--color-success); color: var(--color-success); }
+  </style>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-title">⚙️ 管理画面</div>
+    <a href="index.html" class="btn-home">
+      <i class="ph ph-house"></i> ホーム
+    </a>
+  </header>
+
+  <!-- Auth View -->
+  <div class="auth-view" id="auth-view">
+    <div style="color:var(--color-text-muted); font-size:0.9375rem;">管理者パスワードを入力してください</div>
+    <div class="auth-input-group">
+      <input type="password" id="auth-password" class="text-input" placeholder="パスワード">
+      <button class="btn-primary" id="auth-login-btn">ログイン</button>
+    </div>
+    <div id="auth-error" style="color:var(--color-error); font-size:0.875rem; display:none;">
+      パスワードが間違っています
+    </div>
+  </div>
+
+  <!-- Main View -->
+  <div class="main-view" id="main-view">
+
+    <!-- ページタブ -->
+    <div class="page-tabs">
+      <button class="page-tab-btn is-active" data-page="tools">🛠 ツール管理</button>
+      <button class="page-tab-btn" data-page="brand">🎨 ブランド設定</button>
+    </div>
+
+    <!-- ===== ツール管理パネル ===== -->
+    <div class="tool-panel" id="tool-panel">
+      <div class="controls-panel">
+        <select id="step-selector" class="select-input"></select>
+        <div id="media-tabs" class="tabs"></div>
+      </div>
+      <div id="tool-list" class="tool-list"></div>
+      <button class="btn-add-tool" id="add-tool-btn">
+        <i class="ph ph-plus"></i> ツールを追加する
+      </button>
+      <div class="footer-actions">
+        <div class="data-actions">
+          <button class="btn-secondary" id="export-btn">📤 エクスポート</button>
+          <button class="btn-secondary" id="import-btn-trigger">📥 インポート</button>
+          <input type="file" id="import-input" accept=".json" style="display:none;">
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ブランド設定パネル ===== -->
+    <div class="brand-panel" id="brand-panel">
+
+      <!-- プレビューバナー -->
+      <div class="brand-preview-banner" id="brand-preview-banner" style="display:none;">
+        <div class="brand-preview-label">現在のブランド設定</div>
+        <div class="brand-preview-grid" id="brand-preview-grid"></div>
+      </div>
+
+      <!-- 基本情報 -->
+      <div class="brand-section">
+        <div class="brand-section-title">📋 基本情報</div>
+        <div class="form-group">
+          <label class="form-label" for="brand-account-name">プロジェクト名</label>
+          <input type="text" id="brand-account-name" class="form-input" placeholder="例: @kazu_ai_video">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="brand-concept">コンセプト</label>
+          <textarea id="brand-concept" class="form-textarea" placeholder="例: AIを使って副業月5万円を目指す30代会社員向けチャンネル"></textarea>
+          <div class="form-hint">どんな人に・どんな価値を・どんな形で届けるかを記入</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="brand-target">ターゲット</label>
+          <textarea id="brand-target" class="form-textarea" placeholder="例: 30〜40代・副業初心者・AIに興味あり・時間がない会社員"></textarea>
+        </div>
+      </div>
+
+      <!-- トーン＆マナー -->
+      <div class="brand-section">
+        <div class="brand-section-title">🎭 トーン＆マナー</div>
+        <div class="form-group">
+          <label class="form-label" for="brand-tone">トーン＆マナー</label>
+          <textarea id="brand-tone" class="form-textarea" placeholder="例: 親しみやすく・でも信頼感あり。難しい言葉は使わない。テンポよく。"></textarea>
+          <div class="form-hint">話し方・雰囲気・世界観を具体的に</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">NGワード・NG表現</label>
+          <div class="ng-tag-area" id="ng-tag-area"></div>
+          <div class="ng-add-row" style="margin-top: var(--space-2);">
+            <input type="text" id="ng-add-input" class="ng-add-input" placeholder="NGワードを追加（Enterで確定）">
+            <button class="btn-ng-add" id="ng-add-btn">＋ 追加</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- チェックポイント -->
+      <div class="brand-section">
+        <div class="brand-section-title">✅ 投稿前チェックポイント</div>
+        <div class="form-hint" style="margin-bottom: var(--space-2);">各ステップでブランドチェックが走る際に参照されます</div>
+        <div class="checkpoint-list" id="checkpoint-list"></div>
+        <button class="btn-cp-add" id="cp-add-btn">
+          <i class="ph ph-plus"></i> チェックポイントを追加
+        </button>
+      </div>
+
+      <!-- 保存ボタン -->
+      <div class="brand-save-row">
+        <button class="btn-brand-save" id="brand-save-btn">💾 ブランド設定を保存</button>
+      </div>
+    </div>
+
+  </div><!-- /main-view -->
+</div><!-- /app-container -->
+
+<!-- Tool Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header" id="modal-title">ツールの追加</div>
+    <div class="form-group">
+      <label class="form-label">ツール名</label>
+      <input type="text" id="modal-name" class="text-input" placeholder="例: Gemini GEMs 台本生成">
+    </div>
+    <div class="form-group">
+      <label class="form-label">URL</label>
+      <input type="url" id="modal-url" class="text-input" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">カテゴリ</label>
+      <input type="text" id="modal-category" class="text-input" placeholder="例: AI生成">
+    </div>
+    <div class="form-group">
+      <label class="form-label">備考</label>
+      <textarea id="modal-note" class="form-textarea" style="min-height:60px;" placeholder="使い方のメモなど（任意）"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel-btn" style="flex:none; padding: var(--space-2) var(--space-4);">キャンセル</button>
+      <button class="btn-primary" id="modal-save-btn">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+const adminState = {
+  isAuthenticated: false,
+  selectedStepId: STEPS[0].id,
+  selectedMedia: Object.keys(MEDIA_TYPES)[0],
+  editingToolId: null,
+  currentPage: 'tools', // 'tools' | 'brand'
+  toolLinksHydrated: false,
+  brandNgWords: [],
+  brandCheckPoints: []
+};
+
+// ============================================================
+// Supabase — Brand Settings
+// ============================================================
+const SUPABASE_URL = "https://adbitwieufbfczrfvkql.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_i9da9o6E7A9cN4uWS7gjHg_VUzSHPsT";
+const BRAND_SETTINGS_TABLE = "brand_settings";
+const TOOL_LINKS_TABLE = "tool_links";
+const BRAND_PROJECT_KEY = "default";
+
+let brandSupabaseClient = null;
+
+function isSupabaseConfigured() {
+  return Boolean(
+    window.supabase &&
+    SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+    SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+  );
+}
+
+function getBrandSupabaseClient() {
+  if (!isSupabaseConfigured()) return null;
+  if (!brandSupabaseClient) {
+    brandSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return brandSupabaseClient;
+}
+
+function mapBrandRowToSettings(row) {
+  if (!row) return null;
+  return {
+    accountName: row.account_name || '',
+    concept: row.concept || '',
+    target: row.target || '',
+    toneAndManner: row.tone_and_manner || '',
+    ngWords: Array.isArray(row.ng_words) ? row.ng_words : [],
+    checkPoints: Array.isArray(row.check_points) ? row.check_points : []
+  };
+}
+
+function mapBrandSettingsToRow(data) {
+  return {
+    project_key: BRAND_PROJECT_KEY,
+    account_name: data.accountName || '',
+    concept: data.concept || '',
+    target: data.target || '',
+    tone_and_manner: data.toneAndManner || '',
+    ng_words: Array.isArray(data.ngWords) ? data.ngWords : [],
+    check_points: Array.isArray(data.checkPoints) ? data.checkPoints : [],
+    updated_at: new Date().toISOString()
+  };
+}
+
+function hasBrandSettingsContent(data) {
+  return Boolean(
+    data.accountName ||
+    data.concept ||
+    data.target ||
+    data.toneAndManner ||
+    (Array.isArray(data.ngWords) && data.ngWords.length > 0) ||
+    (Array.isArray(data.checkPoints) && data.checkPoints.length > 0)
+  );
+}
+
+async function loadBrandSettingsFromSupabase() {
+  const client = getBrandSupabaseClient();
+  if (!client) return null;
+
+  const { data, error } = await client
+    .from(BRAND_SETTINGS_TABLE)
+    .select('account_name, concept, target, tone_and_manner, ng_words, check_points')
+    .eq('project_key', BRAND_PROJECT_KEY)
+    .maybeSingle();
+
+  if (error) throw error;
+  return mapBrandRowToSettings(data);
+}
+
+async function saveBrandSettingsToSupabase(data) {
+  const client = getBrandSupabaseClient();
+  if (!client) throw new Error("Supabase is not configured.");
+
+  const { error } = await client
+    .from(BRAND_SETTINGS_TABLE)
+    .upsert(mapBrandSettingsToRow(data), { onConflict: 'project_key' });
+
+  if (error) throw error;
+}
+
+// ============================================================
+// LocalStorage — Tools
+// ============================================================
+function getToolLinks() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.TOOL_LINKS)) || {}; }
+  catch(e) { return {}; }
+}
+
+function hasToolLinksContent(links) {
+  return buildToolLinkRows(links).length > 0;
+}
+
+function buildToolLinkRows(links) {
+  const rows = [];
+  Object.values(links || {}).forEach(stepLinks => {
+    if (!stepLinks || !stepLinks.tools) return;
+    Object.entries(stepLinks.tools).forEach(([media, tools]) => {
+      (tools || []).forEach((tool, index) => {
+        if (!tool.id) tool.id = generateId();
+        if (!tool.name || !tool.url) return;
+        rows.push({
+          id: tool.id,
+          project_key: BRAND_PROJECT_KEY,
+          step_id: Number(stepLinks.stepId),
+          step_title: stepLinks.stepTitle || '',
+          media,
+          name: tool.name || '',
+          url: tool.url || '',
+          category: tool.category || '',
+          note: tool.note || '',
+          sort_order: Number.isFinite(Number(tool.order)) ? Number(tool.order) : index,
+          enabled: tool.enabled !== false,
+          updated_at: new Date().toISOString()
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+function mapToolRowsToLinks(rows) {
+  const links = {};
+  (rows || []).forEach(row => {
+    const stepId = Number(row.step_id);
+    const media = row.media || 'other';
+    const stepDef = STEPS.find(s => s.id === stepId);
+    if (!links[stepId]) {
+      links[stepId] = {
+        stepId,
+        stepTitle: row.step_title || (stepDef ? stepDef.title : "Unknown"),
+        tools: {}
+      };
+    }
+    if (!links[stepId].tools[media]) links[stepId].tools[media] = [];
+    links[stepId].tools[media].push({
+      id: row.id,
+      name: row.name || '',
+      url: row.url || '',
+      category: row.category || '',
+      note: row.note || '',
+      order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : links[stepId].tools[media].length,
+      enabled: row.enabled !== false
+    });
+  });
+  Object.values(links).forEach(stepLinks => {
+    Object.values(stepLinks.tools || {}).forEach(tools => {
+      tools.sort((a, b) => (a.order || 0) - (b.order || 0));
+      tools.forEach((tool, index) => { tool.order = index; });
+    });
+  });
+  return links;
+}
+
+async function loadToolLinksFromSupabase() {
+  const client = getBrandSupabaseClient();
+  if (!client) return null;
+
+  const { data, error } = await client
+    .from(TOOL_LINKS_TABLE)
+    .select('id, step_id, step_title, media, name, url, category, note, sort_order, enabled')
+    .eq('project_key', BRAND_PROJECT_KEY)
+    .order('step_id', { ascending: true })
+    .order('media', { ascending: true })
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+  return mapToolRowsToLinks(data);
+}
+
+async function saveToolLinksToSupabase(links) {
+  const client = getBrandSupabaseClient();
+  if (!client) throw new Error("Supabase is not configured.");
+
+  const rows = buildToolLinkRows(links);
+  if (rows.length === 0) {
+    console.warn("[admin] tool links sync skipped: generated rows are empty.");
+    return;
+  }
+
+  const { error: deleteError } = await client
+    .from(TOOL_LINKS_TABLE)
+    .delete()
+    .eq('project_key', BRAND_PROJECT_KEY);
+
+  if (deleteError) throw deleteError;
+
+  const { error: insertError } = await client
+    .from(TOOL_LINKS_TABLE)
+    .insert(rows);
+
+  if (insertError) throw insertError;
+}
+
+async function hydrateToolLinksFromSupabase() {
+  if (adminState.toolLinksHydrated) return;
+  adminState.toolLinksHydrated = true;
+
+  const localLinks = getToolLinks();
+  try {
+    const cloudLinks = await loadToolLinksFromSupabase();
+    if (cloudLinks) {
+      localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(cloudLinks));
+      renderToolList();
+    } else if (hasToolLinksContent(localLinks) && getBrandSupabaseClient()) {
+      await saveToolLinksToSupabase(localLinks);
+      showToast("Tool links migrated to Supabase", "success");
+    }
+  } catch (e) {
+    console.error("[admin] tool links cloud sync failed:", e);
+    showToast("Tool links cloud sync failed. Local fallback is active.", "error");
+  }
+}
+
+function setToolLinks(links) {
+  buildToolLinkRows(links);
+  localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(links));
+  showToast("保存しました", "success");
+  saveToolLinksToSupabase(links).catch(e => {
+    console.error("[admin] tool links save failed:", e);
+    showToast("Cloud sync failed. Saved locally.", "error");
+  });
+}
+
+// ============================================================
+// LocalStorage — Brand
+// ============================================================
+async function loadBrandToForm() {
+  let b = getBrandSettings();
+
+  try {
+    const cloudSettings = await loadBrandSettingsFromSupabase();
+    if (cloudSettings) {
+      b = { ...BRAND_DB_DEFAULT, ...cloudSettings };
+      setBrandSettings(b);
+    } else if (hasBrandSettingsContent(b) && getBrandSupabaseClient()) {
+      await saveBrandSettingsToSupabase(b);
+      showToast("ローカルのブランド設定をクラウドへ移行しました", "success");
+    }
+  } catch (e) {
+    console.error("[admin] brand settings load failed:", e);
+    showToast("クラウド読込に失敗したためローカル設定を表示しています", "error");
+  }
+
+  document.getElementById('brand-account-name').value = b.accountName || '';
+  document.getElementById('brand-concept').value      = b.concept || '';
+  document.getElementById('brand-target').value       = b.target || '';
+  document.getElementById('brand-tone').value         = b.toneAndManner || '';
+  adminState.brandNgWords     = Array.isArray(b.ngWords) ? [...b.ngWords] : [];
+  adminState.brandCheckPoints = Array.isArray(b.checkPoints) ? [...b.checkPoints] : [];
+  renderNgTags();
+  renderCheckPoints();
+  renderBrandPreview(b);
+}
+
+async function saveBrandFromForm() {
+  // チェックポイントは入力中の値を回収
+  const cpInputs = document.querySelectorAll('.cp-input');
+  adminState.brandCheckPoints = Array.from(cpInputs).map(i => i.value.trim()).filter(v => v);
+
+  const data = {
+    accountName:   document.getElementById('brand-account-name').value.trim(),
+    concept:       document.getElementById('brand-concept').value.trim(),
+    target:        document.getElementById('brand-target').value.trim(),
+    toneAndManner: document.getElementById('brand-tone').value.trim(),
+    ngWords:       [...adminState.brandNgWords],
+    checkPoints:   [...adminState.brandCheckPoints]
+  };
+
+  const saveButton = document.getElementById('brand-save-btn');
+  saveButton.disabled = true;
+  saveButton.textContent = "保存中...";
+
+  try {
+    await saveBrandSettingsToSupabase(data);
+    setBrandSettings(data);
+    renderBrandPreview(data);
+    showToast("ブランド設定をクラウド保存しました", "success");
+  } catch (e) {
+    console.error("[admin] brand settings save failed:", e);
+    setBrandSettings(data);
+    renderBrandPreview(data);
+    showToast("クラウド保存に失敗しました。ローカルに退避しました", "error");
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = "💾 ブランド設定を保存";
+  }
+}
+
+function renderBrandPreview(b) {
+  const banner = document.getElementById('brand-preview-banner');
+  const grid   = document.getElementById('brand-preview-grid');
+  if (!b.accountName && !b.concept) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  const rows = [
+    ['プロジェクト', b.accountName || '—'],
+    ['コンセプト', b.concept ? b.concept.slice(0,30) + (b.concept.length>30?'…':'') : '—'],
+    ['ターゲット', b.target ? b.target.slice(0,30) + (b.target.length>30?'…':'') : '—'],
+    ['トーン',     b.toneAndManner ? b.toneAndManner.slice(0,30) + (b.toneAndManner.length>30?'…':'') : '—'],
+  ];
+  grid.innerHTML = rows.map(([k,v]) => `
+    <dl class="brand-preview-item"><dt>${k}</dt><dd>${escapeHTML(v)}</dd></dl>
+  `).join('');
+}
+
+// ============================================================
+// NGワードUI
+// ============================================================
+function renderNgTags() {
+  const area = document.getElementById('ng-tag-area');
+  area.innerHTML = adminState.brandNgWords.map((w, i) => `
+    <span class="ng-tag">
+      🚫 ${escapeHTML(w)}
+      <button data-ng-index="${i}" title="削除">×</button>
+    </span>
+  `).join('');
+}
+
+function addNgWord() {
+  const input = document.getElementById('ng-add-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!adminState.brandNgWords.includes(val)) {
+    adminState.brandNgWords.push(val);
+    renderNgTags();
+  }
+  input.value = '';
+  input.focus();
+}
+
+// ============================================================
+// チェックポイントUI
+// ============================================================
+function renderCheckPoints() {
+  const list = document.getElementById('checkpoint-list');
+  list.innerHTML = adminState.brandCheckPoints.map((cp, i) => `
+    <div class="checkpoint-item">
+      <input type="text" class="cp-input" data-cp-index="${i}" value="${escapeHTML(cp)}" placeholder="チェック内容を入力">
+      <button class="btn-cp-delete" data-cp-delete="${i}" title="削除"><i class="ph ph-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// Page Tab Switch
+// ============================================================
+function switchPage(page) {
+  adminState.currentPage = page;
+  document.querySelectorAll('.page-tab-btn').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.page === page);
+  });
+  document.getElementById('tool-panel').style.display  = page === 'tools' ? 'flex' : 'none';
+  document.getElementById('brand-panel').style.display = page === 'brand' ? 'flex' : 'none';
+  if (page === 'brand') loadBrandToForm();
+}
+
+// ============================================================
+// Tool Rendering
+// ============================================================
+function ensureDataStructure(links, stepId, media) {
+  if (!links[stepId]) {
+    const stepDef = STEPS.find(s => s.id === Number(stepId));
+    links[stepId] = { stepId: Number(stepId), stepTitle: stepDef ? stepDef.title : "Unknown", tools: {} };
+  }
+  if (!links[stepId].tools[media]) links[stepId].tools[media] = [];
+  return links;
+}
+function generateId() { return 'tool-' + Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+function getSelectedTools() {
+  const links = getToolLinks();
+  const stepLinks = links[adminState.selectedStepId];
+  if (!stepLinks || !stepLinks.tools[adminState.selectedMedia]) return [];
+  return stepLinks.tools[adminState.selectedMedia].sort((a,b) => a.order - b.order);
+}
+
+function renderAuth() {
+  if (adminState.isAuthenticated) {
+    document.getElementById('auth-view').style.display = 'none';
+    document.getElementById('main-view').style.display = 'flex';
+    renderStepSelector(); renderMediaTabs(); renderToolList();
+    hydrateToolLinksFromSupabase();
+    switchPage('tools');
+  } else {
+    document.getElementById('auth-view').style.display = 'flex';
+    document.getElementById('main-view').style.display = 'none';
+  }
+}
+function renderStepSelector() {
+  document.getElementById('step-selector').innerHTML = STEPS.map(step =>
+    `<option value="${step.id}" ${step.id === adminState.selectedStepId ? 'selected' : ''}>
+      STEP ${step.id}: ${step.title}
+    </option>`
+  ).join('');
+}
+function renderMediaTabs() {
+  document.getElementById('media-tabs').innerHTML = Object.entries(MEDIA_TYPES).map(([key, data]) =>
+    `<button class="tab-btn ${key === adminState.selectedMedia ? 'is-active' : ''}" data-media="${key}">
+      ${data.label}
+    </button>`
+  ).join('');
+}
+function renderToolList() {
+  const tools = getSelectedTools();
+  const list = document.getElementById('tool-list');
+  if (tools.length === 0) {
+    list.innerHTML = `<div style="text-align:center; color:var(--color-text-muted); padding:var(--space-4);">ツールが登録されていません</div>`;
+    return;
+  }
+  list.innerHTML = tools.map((tool, index) => `
+    <div class="tool-item ${!tool.enabled ? 'is-disabled' : ''}">
+      <div class="tool-header">
+        <div class="tool-title">
+          ${index + 1}.
+          <i class="ph ${!tool.enabled ? 'ph-square' : 'ph-check-square'}"></i>
+          ${escapeHTML(tool.name)}
+        </div>
+      </div>
+      <div class="tool-url">${escapeHTML(tool.url)}</div>
+      ${tool.note ? `<div class="tool-note">備考: ${escapeHTML(tool.note)}</div>` : ''}
+      <div class="tool-actions">
+        <button class="btn-icon toggle-btn" data-id="${tool.id}">
+          <i class="ph ${tool.enabled ? 'ph-eye-slash' : 'ph-eye'}"></i>
+          ${tool.enabled ? '非表示' : '表示'}
+        </button>
+        <button class="btn-icon edit-btn" data-id="${tool.id}">
+          <i class="ph ph-pencil"></i> 編集
+        </button>
+        <button class="btn-icon move-up-btn" data-id="${tool.id}" ${index===0 ? 'disabled style="opacity:0.3"' : ''}>
+          <i class="ph ph-arrow-up"></i>
+        </button>
+        <button class="btn-icon move-down-btn" data-id="${tool.id}" ${index===tools.length-1 ? 'disabled style="opacity:0.3"' : ''}>
+          <i class="ph ph-arrow-down"></i>
+        </button>
+        <button class="btn-icon is-danger delete-btn" data-id="${tool.id}">
+          <i class="ph ph-trash"></i> 削除
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+function openModal(tool = null) {
+  adminState.editingToolId = tool ? tool.id : null;
+  document.getElementById('modal-title').textContent = tool ? "ツールの編集" : "ツールの追加";
+  document.getElementById('modal-name').value     = tool ? tool.name : '';
+  document.getElementById('modal-url').value      = tool ? tool.url  : '';
+  document.getElementById('modal-category').value = tool ? tool.category : '';
+  document.getElementById('modal-note').value     = tool ? tool.note : '';
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  adminState.editingToolId = null;
+}
+function showToast(message, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast' + (type ? ` is-${type}` : '');
+  toast.classList.add('is-visible');
+  setTimeout(() => toast.classList.remove('is-visible'), 2200);
+}
+
+// ============================================================
+// Event Handlers
+// ============================================================
+function onLoginClick() {
+  const pw = document.getElementById('auth-password').value;
+  if (pw === ADMIN_PASSWORD) {
+    adminState.isAuthenticated = true;
+    document.getElementById('auth-error').style.display = 'none';
+    renderAuth();
+  } else {
+    document.getElementById('auth-error').style.display = 'block';
+  }
+}
+function onStepChange(e) {
+  adminState.selectedStepId = Number(e.target.value);
+  renderToolList();
+}
+function onMediaTabClick(e) {
+  if (!e.target.classList.contains('tab-btn')) return;
+  adminState.selectedMedia = e.target.getAttribute('data-media');
+  renderMediaTabs(); renderToolList();
+}
+function onToolActionClick(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const toolId = btn.getAttribute('data-id');
+  if (!toolId) return;
+  let links = getToolLinks();
+  let tools = links[adminState.selectedStepId]?.tools[adminState.selectedMedia] || [];
+  const toolIndex = tools.findIndex(t => t.id === toolId);
+  if (toolIndex === -1) return;
+  if (btn.classList.contains('toggle-btn')) {
+    tools[toolIndex].enabled = !tools[toolIndex].enabled;
+  } else if (btn.classList.contains('delete-btn')) {
+    if (!confirm('本当に削除しますか？')) return;
+    tools.splice(toolIndex, 1);
+  } else if (btn.classList.contains('move-up-btn') && toolIndex > 0) {
+    [tools[toolIndex-1], tools[toolIndex]] = [tools[toolIndex], tools[toolIndex-1]];
+    tools.forEach((t,i) => t.order = i);
+  } else if (btn.classList.contains('move-down-btn') && toolIndex < tools.length-1) {
+    [tools[toolIndex], tools[toolIndex+1]] = [tools[toolIndex+1], tools[toolIndex]];
+    tools.forEach((t,i) => t.order = i);
+  } else if (btn.classList.contains('edit-btn')) {
+    openModal(tools[toolIndex]); return;
+  }
+  links[adminState.selectedStepId].tools[adminState.selectedMedia] = tools;
+  setToolLinks(links); renderToolList();
+}
+function onModalSaveClick() {
+  const name = document.getElementById('modal-name').value.trim();
+  const url  = document.getElementById('modal-url').value.trim();
+  if (!name || !url) { alert("ツール名とURLは必須です。"); return; }
+  let links = getToolLinks();
+  links = ensureDataStructure(links, adminState.selectedStepId, adminState.selectedMedia);
+  let tools = links[adminState.selectedStepId].tools[adminState.selectedMedia];
+  if (adminState.editingToolId) {
+    const idx = tools.findIndex(t => t.id === adminState.editingToolId);
+    if (idx !== -1) tools[idx] = { ...tools[idx], name, url,
+      category: document.getElementById('modal-category').value.trim(),
+      note: document.getElementById('modal-note').value.trim() };
+  } else {
+    tools.push({ id: generateId(), name, url,
+      category: document.getElementById('modal-category').value.trim(),
+      note: document.getElementById('modal-note').value.trim(),
+      order: tools.length, enabled: true });
+  }
+  links[adminState.selectedStepId].tools[adminState.selectedMedia] = tools;
+  setToolLinks(links); closeModal(); renderToolList();
+}
+function onExportClick() {
+  const links = getToolLinks();
+  const a = document.createElement('a');
+  a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(links, null, 2));
+  a.download = "os_tool_links_export.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast("エクスポートしました");
+}
+function onImportChange(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (typeof data === 'object' && data !== null) { setToolLinks(data); renderToolList(); }
+      else throw new Error("invalid");
+    } catch { alert("インポートに失敗しました。正しいJSONファイルを選択してください。"); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// Brand Event Handlers
+// ============================================================
+function onNgTagAreaClick(e) {
+  const btn = e.target.closest('button[data-ng-index]');
+  if (!btn) return;
+  const idx = Number(btn.dataset.ngIndex);
+  adminState.brandNgWords.splice(idx, 1);
+  renderNgTags();
+}
+function onCheckpointListClick(e) {
+  const btn = e.target.closest('button[data-cp-delete]');
+  if (!btn) return;
+  const idx = Number(btn.dataset.cpDelete);
+  adminState.brandCheckPoints.splice(idx, 1);
+  renderCheckPoints();
+}
+function onCpAddClick() {
+  adminState.brandCheckPoints.push('');
+  renderCheckPoints();
+  // 最後の入力欄にフォーカス
+  const inputs = document.querySelectorAll('.cp-input');
+  if (inputs.length) inputs[inputs.length-1].focus();
+}
+
+// ============================================================
+// Utils
+// ============================================================
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag]||tag));
+}
+
+// ============================================================
+// Bind & Init
+// ============================================================
+function bindEvents() {
+  // Auth
+  document.getElementById('auth-login-btn').addEventListener('click', onLoginClick);
+  document.getElementById('auth-password').addEventListener('keypress', e => { if(e.key==='Enter') onLoginClick(); });
+
+  // Page tabs
+  document.querySelector('.page-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.page-tab-btn');
+    if (btn) switchPage(btn.dataset.page);
+  });
+
+  // Tool panel
+  document.getElementById('step-selector').addEventListener('change', onStepChange);
+  document.getElementById('media-tabs').addEventListener('click', onMediaTabClick);
+  document.getElementById('tool-list').addEventListener('click', onToolActionClick);
+  document.getElementById('add-tool-btn').addEventListener('click', () => openModal(null));
+  document.getElementById('export-btn').addEventListener('click', onExportClick);
+  document.getElementById('import-btn-trigger').addEventListener('click', () => document.getElementById('import-input').click());
+  document.getElementById('import-input').addEventListener('change', onImportChange);
+
+  // Modal
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-save-btn').addEventListener('click', onModalSaveClick);
+  document.getElementById('modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+  // Brand panel
+  document.getElementById('ng-tag-area').addEventListener('click', onNgTagAreaClick);
+  document.getElementById('ng-add-btn').addEventListener('click', addNgWord);
+  document.getElementById('ng-add-input').addEventListener('keypress', e => { if(e.key==='Enter') addNgWord(); });
+  document.getElementById('checkpoint-list').addEventListener('click', onCheckpointListClick);
+  document.getElementById('cp-add-btn').addEventListener('click', onCpAddClick);
+  document.getElementById('brand-save-btn').addEventListener('click', saveBrandFromForm);
+}
+
+function initAdmin() {
+  bindEvents();
+  // tool-panelは初期表示flex、brand-panelはnone
+  document.getElementById('tool-panel').style.display  = 'flex';
+  document.getElementById('brand-panel').style.display = 'none';
+  renderAuth();
+}
+
+initAdmin();
+</script>
+</body>
+</html>

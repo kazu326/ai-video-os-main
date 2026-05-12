@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI動画事業OS 運営ビュー</title>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="config.js"></script>
+  <style>
+    /* ============================================================
+       CSS Variables
+    ============================================================ */
+    :root {
+      --color-bg: #101011;
+      --color-surface: #171717;
+      --color-surface-2: #1f1f20;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-text: #f5f5f5;
+      --color-text-muted: #888888;
+      --color-primary: #4f98a3;
+      --color-success: #6daa45;
+      --color-error: #dd6974;
+      --color-warning: #f9a826;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ============================================================
+       Base Styles
+    ============================================================ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+      transition: all var(--transition);
+    }
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       Layout & Header
+    ============================================================ */
+    .app-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      padding-bottom: 100px; /* FABのための余白 */
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .btn-home {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      text-decoration: none;
+    }
+    .btn-home:hover {
+      color: var(--color-primary);
+    }
+
+    /* ============================================================
+       Tabs
+    ============================================================ */
+    .tabs-container {
+      display: flex;
+      gap: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--space-4);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .tab-btn {
+      padding: var(--space-3) var(--space-4);
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--color-text-muted);
+      border-bottom: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .tab-btn:hover {
+      color: var(--color-text);
+    }
+    .tab-btn.is-active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+    
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-4);
+      animation: fadeIn var(--transition);
+    }
+    .tab-content.is-active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       Responsive Images (Philosophy/Map)
+    ============================================================ */
+    .responsive-image-container {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+      margin-bottom: var(--space-4);
+    }
+    .responsive-image {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* モバイル・デスクトップ切り替えロジック */
+    .img-mobile { display: block; }
+    .img-desktop { display: none; }
+    @media (min-width: 768px) {
+      .img-mobile { display: none; }
+      .img-desktop { display: block; }
+    }
+
+    /* ============================================================
+       SOP View (Accordion)
+    ============================================================ */
+    .sop-item {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .sop-header {
+      padding: var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sop-header:hover {
+      background-color: var(--color-surface-2);
+    }
+    .sop-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .sop-id {
+      background-color: var(--color-surface-2);
+      color: var(--color-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 0.875rem;
+      border: 1px solid var(--color-border);
+    }
+    .sop-title {
+      font-size: 1.125rem;
+      font-weight: bold;
+    }
+    .sop-meta {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .sop-icon {
+      transition: transform var(--transition);
+      color: var(--color-text-muted);
+    }
+    .sop-item.is-open .sop-icon {
+      transform: rotate(180deg);
+    }
+    
+    .sop-body {
+      display: none;
+      padding: var(--space-4);
+      border-top: 1px solid var(--color-border);
+      background-color: var(--color-surface-2);
+    }
+    .sop-item.is-open .sop-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .sop-desc {
+      font-size: 0.9rem;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+    
+    .sop-tools-title {
+      font-size: 0.875rem;
+      font-weight: bold;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .sop-tools-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .sop-tool {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+    .sop-tool:hover {
+      border-color: var(--color-primary);
+    }
+    .sop-tool-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .sop-tool-name {
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .sop-tool-tags {
+      display: flex;
+      gap: var(--space-1);
+      margin-top: 4px;
+    }
+    .tool-tag {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      background-color: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      color: var(--color-text-muted);
+    }
+
+    /* ============================================================
+       Progress View
+    ============================================================ */
+    .progress-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .progress-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .prog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .prog-title {
+      font-size: 1.125rem;
+      font-weight: bold;
+    }
+    .prog-status {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .status-completed {
+      background-color: rgba(109, 170, 69, 0.15);
+      color: var(--color-success);
+    }
+    .status-aborted {
+      background-color: rgba(249, 168, 38, 0.15);
+      color: var(--color-warning);
+    }
+    
+    .prog-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .prog-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .prog-bar-container {
+      width: 100%;
+      background-color: var(--color-surface-2);
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: var(--space-2);
+    }
+    .prog-bar-fill {
+      height: 100%;
+      background-color: var(--color-primary);
+      border-radius: 999px;
+    }
+    .prog-last-step {
+      font-size: 0.8rem;
+      color: var(--color-primary);
+      font-weight: bold;
+      margin-top: var(--space-1);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8);
+      background-color: var(--color-surface);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-muted);
+    }
+
+    /* ============================================================
+       Floating Action Button (FAB)
+    ============================================================ */
+    .fab {
+      position: fixed;
+      bottom: var(--space-6);
+      right: var(--space-6);
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: var(--color-primary);
+      color: var(--color-bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      box-shadow: 0 8px 24px rgba(79, 152, 163, 0.4);
+      z-index: 90;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+    }
+    .fab:hover {
+      transform: scale(1.08);
+      box-shadow: 0 12px 32px rgba(79, 152, 163, 0.5);
+    }
+    @media (max-width: 767px) {
+      .fab {
+        bottom: var(--space-4);
+        right: var(--space-4);
+        width: 56px;
+        height: 56px;
+        font-size: 1.75rem;
+      }
+    }
+
+    /* ============================================================
+       Modal (Philosophy Overlay)
+    ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-4);
+    }
+    .modal-overlay.is-open {
+      display: flex;
+      animation: fadeIn var(--transition);
+    }
+    .modal-content {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--color-surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .modal-close {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--color-surface-2);
+      color: var(--color-text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.25rem;
+      border: 1px solid var(--color-border);
+    }
+    .modal-close:hover {
+      background-color: var(--color-error);
+      border-color: var(--color-error);
+      color: white;
+    }
+    .modal-body {
+      padding: var(--space-4);
+      overflow-y: auto;
+    }
+
+  </style>
+</head>
+<body>
+  
+  <div class="app-container">
+    <header class="header">
+      <h1 class="header-title"><i class="ph ph-kanban"></i> 運営ビュー</h1>
+      <a href="index.html" class="btn-home"><i class="ph ph-house"></i> ホーム画面</a>
+    </header>
+
+    <div class="tabs-container">
+      <button class="tab-btn is-active" data-tab="tab-sop">
+        <i class="ph ph-map-trifold"></i> 俯瞰SOP
+      </button>
+      <button class="tab-btn" data-tab="tab-progress">
+        <i class="ph ph-chart-line-up"></i> セッション進捗
+      </button>
+      <button class="tab-btn" data-tab="tab-philosophy" style="color: var(--color-primary);">
+        <i class="ph ph-compass"></i> 思想・判断基準
+      </button>
+    </div>
+
+    <!-- TAB 1: SOP俯瞰 -->
+    <main id="tab-sop" class="tab-content is-active">
+      <!-- Generated by JS -->
+    </main>
+
+    <!-- TAB 2: セッション進捗 -->
+    <main id="tab-progress" class="tab-content">
+      <div id="progress-container" class="progress-list">
+        <!-- Generated by JS -->
+      </div>
+    </main>
+
+    <!-- TAB 3: 思想・判断基準 -->
+    <main id="tab-philosophy" class="tab-content">
+      <div class="responsive-image-container">
+        <img src="assets/images/os-roadmap-core-mobile.png" alt="統合ロードマップ" class="responsive-image img-mobile">
+        <img src="assets/images/os-roadmap-core-desktop.png" alt="統合ロードマップ" class="responsive-image img-desktop">
+      </div>
+      <div class="responsive-image-container">
+        <img src="assets/images/os-map-overview-mobile.png" alt="マインドマップ" class="responsive-image img-mobile">
+        <img src="assets/images/os-map-overview-desktop.png" alt="マインドマップ" class="responsive-image img-desktop">
+      </div>
+    </main>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab" id="fab-principles" title="思想・判断基準を開く">
+    <i class="ph ph-compass"></i>
+  </button>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-principles">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title"><i class="ph ph-compass"></i> 思想・判断基準</div>
+        <button class="modal-close" id="btn-close-modal"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="responsive-image-container">
+          <img src="assets/images/os-roadmap-core-mobile.png" alt="統合ロードマップ" class="responsive-image img-mobile">
+          <img src="assets/images/os-roadmap-core-desktop.png" alt="統合ロードマップ" class="responsive-image img-desktop">
+        </div>
+        <div class="responsive-image-container">
+          <img src="assets/images/os-map-overview-mobile.png" alt="マインドマップ" class="responsive-image img-mobile">
+          <img src="assets/images/os-map-overview-desktop.png" alt="マインドマップ" class="responsive-image img-desktop">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // State & Data
+    // ============================================================
+    let allToolLinks = [];
+    let sessionLogs = [];
+
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const els = {
+      tabBtns: document.querySelectorAll('.tab-btn'),
+      tabContents: document.querySelectorAll('.tab-content'),
+      tabSop: document.getElementById('tab-sop'),
+      progressContainer: document.getElementById('progress-container'),
+      fab: document.getElementById('fab-principles'),
+      modal: document.getElementById('modal-principles'),
+      btnCloseModal: document.getElementById('btn-close-modal')
+    };
+
+    // ============================================================
+    // Initialization
+    // ============================================================
+    function init() {
+      // Load data
+      try {
+        const rawTools = localStorage.getItem(STORAGE_KEYS.TOOL_LINKS);
+        const parsedTools = rawTools ? JSON.parse(rawTools) : [];
+
+        allToolLinks = Array.isArray(parsedTools)
+          ? parsedTools
+          : Object.values(parsedTools || {});
+      } catch (e) {
+        console.error(e);
+        allToolLinks = [];
+      }
+
+      try {
+        const rawSessions = localStorage.getItem(STORAGE_KEYS.SESSION);
+        sessionLogs = rawSessions ? JSON.parse(rawSessions) : [];
+        sessionLogs.sort((a, b) => (b.endTime || b.startTime) - (a.endTime || a.startTime));
+      } catch(e) { console.error(e); }
+
+      // Setup Tabs
+      els.tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      // Setup Modal
+      els.fab.addEventListener('click', openModal);
+      els.btnCloseModal.addEventListener('click', closeModal);
+      els.modal.addEventListener('click', (e) => {
+        if(e.target === els.modal) closeModal();
+      });
+
+      // Render Views
+      renderSopView();
+      renderProgressView();
+    }
+
+    function switchTab(tabId) {
+      els.tabBtns.forEach(btn => {
+        if(btn.dataset.tab === tabId) btn.classList.add('is-active');
+        else btn.classList.remove('is-active');
+      });
+      els.tabContents.forEach(content => {
+        if(content.id === tabId) content.classList.add('is-active');
+        else content.classList.remove('is-active');
+      });
+    }
+
+    function openModal() {
+      els.modal.classList.add('is-open');
+    }
+    
+    function closeModal() {
+      els.modal.classList.remove('is-open');
+    }
+
+    // ============================================================
+    // Render: SOP View
+    // ============================================================
+    function renderSopView() {
+      let html = '';
+      
+      STEPS.forEach((step, index) => {
+        // Filter tools for this step
+        const stepTools = allToolLinks.filter(t => t.stepId === step.id);
+        stepTools.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        // Generate tools HTML
+        let toolsHtml = '';
+        if (stepTools.length > 0) {
+          toolsHtml = `
+            <div class="sop-tools-title"><i class="ph ph-link"></i> 登録ツール一覧 (${stepTools.length})</div>
+            <div class="sop-tools-list">
+              ${stepTools.map(t => {
+                const mediaLabel = MEDIA_TYPES[t.media] ? MEDIA_TYPES[t.media].label : t.media;
+                const levelsLabel = t.allowedLevels === 'all' ? '全員' : (Array.isArray(t.allowedLevels) ? t.allowedLevels.map(l => LEVELS[l]?.label || l).join(', ') : t.allowedLevels);
+                
+                return `
+                  <a href="${escapeHtml(t.url)}" target="_blank" class="sop-tool">
+                    <div class="sop-tool-info">
+                      <span class="sop-tool-name">${escapeHtml(t.name)}</span>
+                      <div class="sop-tool-tags">
+                        <span class="tool-tag">${mediaLabel}</span>
+                        <span class="tool-tag">${levelsLabel}</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-square-out" style="color:var(--color-text-muted);"></i>
+                  </a>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else {
+          toolsHtml = `<div style="color:var(--color-text-muted); font-size:0.875rem;">登録されているツールはありません</div>`;
+        }
+
+        html += `
+          <div class="sop-item" id="sop-${step.id}">
+            <div class="sop-header" onclick="toggleSop(${step.id})">
+              <div class="sop-title-wrap">
+                <div class="sop-id">${step.id}</div>
+                <div class="sop-title">${escapeHtml(step.title)}</div>
+              </div>
+              <div class="sop-meta">
+                <span><i class="ph ph-clock"></i> ${step.estimatedMinutes}分</span>
+                <i class="ph ph-caret-down sop-icon"></i>
+              </div>
+            </div>
+            <div class="sop-body">
+              <div class="sop-desc">${escapeHtml(step.description)}</div>
+              ${step.hasBrandCheck ? `<div style="color:var(--color-warning); font-size:0.8rem; font-weight:bold;"><i class="ph ph-warning-circle"></i> ブランド設定の確認が必要な工程です</div>` : ''}
+              <hr style="border:none; border-top:1px solid var(--color-border); margin: var(--space-2) 0;">
+              ${toolsHtml}
+            </div>
+          </div>
+        `;
+      });
+      
+      els.tabSop.innerHTML = html;
+    }
+
+    function toggleSop(id) {
+      const el = document.getElementById(`sop-${id}`);
+      if (el) el.classList.toggle('is-open');
+    }
+
+    // ============================================================
+    // Render: Progress View
+    // ============================================================
+    function renderProgressView() {
+      if (sessionLogs.length === 0) {
+        els.progressContainer.innerHTML = `
+          <div class="empty-state">
+            <i class="ph ph-chart-line-up" style="font-size: 2rem; margin-bottom: 8px;"></i>
+            <p>セッションログがありません</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      sessionLogs.forEach(log => {
+        const statusClass = log.status === 'completed' ? 'status-completed' : 'status-aborted';
+        const statusText = log.status === 'completed' ? '完了' : '中断';
+        const mediaLabel = MEDIA_TYPES[log.media] ? MEDIA_TYPES[log.media].label : log.media;
+        
+        // Find last step
+        let lastStepTitle = '未着手';
+        let progressPercent = 0;
+        
+        if (log.steps && log.steps.length > 0) {
+          const lastStep = log.steps[log.steps.length - 1];
+          lastStepTitle = `STEP ${lastStep.stepId}: ${lastStep.stepTitle}`;
+          // Roughly calculate progress based on total 14 steps
+          progressPercent = Math.min(100, Math.round((lastStep.stepId / 14) * 100));
+        }
+        
+        if (log.status === 'completed') progressPercent = 100;
+
+        html += `
+          <div class="progress-card">
+            <div class="prog-header">
+              <div class="prog-title">${escapeHtml(log.project)}</div>
+              <div class="prog-status ${statusClass}">${statusText}</div>
+            </div>
+            
+            <div class="prog-meta">
+              <div class="prog-meta-item"><i class="ph ph-user"></i> ${escapeHtml(log.user)}</div>
+              <div class="prog-meta-item"><i class="ph ph-monitor"></i> ${mediaLabel}</div>
+              <div class="prog-meta-item"><i class="ph ph-calendar"></i> ${formatDate(log.endTime || log.startTime)}</div>
+            </div>
+            
+            <div>
+              <div class="prog-bar-container">
+                <div class="prog-bar-fill" style="width: ${progressPercent}%;"></div>
+              </div>
+              <div class="prog-last-step">
+                ${log.status === 'completed' ? '全ての作業が完了しました' : `最終確認工程: ${lastStepTitle}`}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      els.progressContainer.innerHTML = html;
+    }
+
+    // ============================================================
+    // Utilities
+    // ============================================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    // Run
+    init();
+  </script>
+</body>
+</html>
