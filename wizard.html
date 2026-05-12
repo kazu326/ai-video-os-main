@@ -1111,11 +1111,58 @@
     function loadToolLinksFromLocalStorage() {
       try {
         const raw = localStorage.getItem(STORAGE_KEYS.TOOL_LINKS);
-        return normalizeToolLinks(raw ? JSON.parse(raw) : []);
+        if (!raw) return [];
+        const migrated = migrateToolLinkStepIds(JSON.parse(raw));
+        if (migrated.changed) {
+          localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(migrated.links));
+        }
+        return normalizeToolLinks(migrated.links);
       } catch (e) {
         console.error("[wizard] Failed to parse tool links:", e);
         return [];
       }
+    }
+
+    const TOOL_LINK_STEP_TITLE_MIGRATIONS = {
+      "素材・キャラクター準備": { stepId: 4, stepTitle: "素材・キャラクター準備" },
+      "投稿計画・スケジューリング": { stepId: 3, stepTitle: "投稿計画・スケジューリング" },
+      "ナレーション・音声生成": { stepId: 7, stepTitle: "ナレーション・音声生成" },
+      "映像・動画素材生成": { stepId: 6, stepTitle: "映像・動画素材生成" }
+    };
+
+    function migrateToolLinkStepIds(links) {
+      if (Array.isArray(links)) return { links, changed: false };
+
+      const migrated = {};
+      let changed = false;
+
+      Object.values(links || {}).forEach(stepLinks => {
+        if (!stepLinks || !stepLinks.tools) return;
+
+        const migration = TOOL_LINK_STEP_TITLE_MIGRATIONS[stepLinks.stepTitle];
+        const stepId = migration ? migration.stepId : Number(stepLinks.stepId);
+        const stepDef = STEPS.find(s => s.id === stepId);
+        const stepTitle = migration ? migration.stepTitle : (stepLinks.stepTitle || (stepDef ? stepDef.title : "Unknown"));
+
+        if (migration && Number(stepLinks.stepId) !== stepId) changed = true;
+        if (!migrated[stepId]) {
+          migrated[stepId] = { stepId, stepTitle, tools: {} };
+        }
+
+        Object.entries(stepLinks.tools).forEach(([media, tools]) => {
+          if (!migrated[stepId].tools[media]) migrated[stepId].tools[media] = [];
+          migrated[stepId].tools[media].push(...(tools || []));
+        });
+      });
+
+      Object.values(migrated).forEach(stepLinks => {
+        Object.values(stepLinks.tools || {}).forEach(tools => {
+          tools.sort((a, b) => (a.order || 0) - (b.order || 0));
+          tools.forEach((tool, index) => { tool.order = index; });
+        });
+      });
+
+      return { links: changed ? migrated : links, changed };
     }
 
     function mapToolRowsToLinks(rows) {
@@ -1172,8 +1219,9 @@
       try {
         const cloudLinks = await loadToolLinksFromSupabase();
         if (!cloudLinks) return;
-        localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(cloudLinks));
-        state.allToolLinks = normalizeToolLinks(cloudLinks);
+        const migrated = migrateToolLinkStepIds(cloudLinks);
+        localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(migrated.links));
+        state.allToolLinks = normalizeToolLinks(migrated.links);
         renderCurrentStepTools();
       } catch (e) {
         console.error("[wizard] tool links cloud load failed:", e);

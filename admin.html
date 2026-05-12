@@ -749,6 +749,46 @@ function hasToolLinksContent(links) {
   return buildToolLinkRows(links).length > 0;
 }
 
+const TOOL_LINK_STEP_TITLE_MIGRATIONS = {
+  "素材・キャラクター準備": { stepId: 4, stepTitle: "素材・キャラクター準備" },
+  "投稿計画・スケジューリング": { stepId: 3, stepTitle: "投稿計画・スケジューリング" },
+  "ナレーション・音声生成": { stepId: 7, stepTitle: "ナレーション・音声生成" },
+  "映像・動画素材生成": { stepId: 6, stepTitle: "映像・動画素材生成" }
+};
+
+function migrateToolLinkStepIds(links) {
+  const migrated = {};
+  let changed = false;
+
+  Object.values(links || {}).forEach(stepLinks => {
+    if (!stepLinks || !stepLinks.tools) return;
+
+    const migration = TOOL_LINK_STEP_TITLE_MIGRATIONS[stepLinks.stepTitle];
+    const stepId = migration ? migration.stepId : Number(stepLinks.stepId);
+    const stepDef = STEPS.find(s => s.id === stepId);
+    const stepTitle = migration ? migration.stepTitle : (stepLinks.stepTitle || (stepDef ? stepDef.title : "Unknown"));
+
+    if (migration && Number(stepLinks.stepId) !== stepId) changed = true;
+    if (!migrated[stepId]) {
+      migrated[stepId] = { stepId, stepTitle, tools: {} };
+    }
+
+    Object.entries(stepLinks.tools).forEach(([media, tools]) => {
+      if (!migrated[stepId].tools[media]) migrated[stepId].tools[media] = [];
+      migrated[stepId].tools[media].push(...(tools || []));
+    });
+  });
+
+  Object.values(migrated).forEach(stepLinks => {
+    Object.values(stepLinks.tools || {}).forEach(tools => {
+      tools.sort((a, b) => (a.order || 0) - (b.order || 0));
+      tools.forEach((tool, index) => { tool.order = index; });
+    });
+  });
+
+  return { links: changed ? migrated : links, changed };
+}
+
 function buildToolLinkRows(links) {
   const rows = [];
   Object.values(links || {}).forEach(stepLinks => {
@@ -856,13 +896,24 @@ async function hydrateToolLinksFromSupabase() {
   adminState.toolLinksHydrated = true;
 
   const localLinks = getToolLinks();
+  const localMigration = migrateToolLinkStepIds(localLinks);
+  if (localMigration.changed) {
+    localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(localMigration.links));
+    renderToolList();
+  }
+
   try {
     const cloudLinks = await loadToolLinksFromSupabase();
     if (cloudLinks) {
-      localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(cloudLinks));
+      const migrated = migrateToolLinkStepIds(cloudLinks);
+      localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(migrated.links));
       renderToolList();
-    } else if (hasToolLinksContent(localLinks) && getBrandSupabaseClient()) {
-      await saveToolLinksToSupabase(localLinks);
+      if (migrated.changed) {
+        await saveToolLinksToSupabase(migrated.links);
+        showToast("Tool link step IDs migrated", "success");
+      }
+    } else if (hasToolLinksContent(localMigration.links) && getBrandSupabaseClient()) {
+      await saveToolLinksToSupabase(localMigration.links);
       showToast("Tool links migrated to Supabase", "success");
     }
   } catch (e) {
@@ -872,10 +923,11 @@ async function hydrateToolLinksFromSupabase() {
 }
 
 function setToolLinks(links) {
-  buildToolLinkRows(links);
-  localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(links));
+  const migrated = migrateToolLinkStepIds(links);
+  buildToolLinkRows(migrated.links);
+  localStorage.setItem(STORAGE_KEYS.TOOL_LINKS, JSON.stringify(migrated.links));
   showToast("保存しました", "success");
-  saveToolLinksToSupabase(links).catch(e => {
+  saveToolLinksToSupabase(migrated.links).catch(e => {
     console.error("[admin] tool links save failed:", e);
     showToast("Cloud sync failed. Saved locally.", "error");
   });

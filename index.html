@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -34,7 +35,12 @@
     /* ============================================================
        Base Styles
     ============================================================ */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background-color: var(--color-bg);
       color: var(--color-text);
@@ -46,6 +52,7 @@
       min-height: 100vh;
       padding: var(--space-6) var(--space-4);
     }
+
     a {
       text-decoration: none;
       color: inherit;
@@ -63,9 +70,17 @@
       margin-top: 5vh;
       animation: fadeIn var(--transition) ease-out;
     }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .header {
@@ -75,20 +90,23 @@
       gap: var(--space-2);
       text-align: center;
     }
+
     .header-icon {
       font-size: 3rem;
       color: var(--color-primary);
       margin-bottom: var(--space-2);
     }
+
     .header-title {
       font-size: 2rem;
       font-weight: bold;
       letter-spacing: 0.05em;
     }
+
     .header-subtitle {
       color: var(--color-text-muted);
       font-size: 1rem;
-      max-width: 500px;
+      max-width: 600px;
     }
 
     /* ============================================================
@@ -99,6 +117,7 @@
       grid-template-columns: repeat(2, 1fr);
       gap: var(--space-4);
     }
+
     @media (max-width: 600px) {
       .menu-grid {
         grid-template-columns: 1fr;
@@ -117,19 +136,25 @@
       position: relative;
       overflow: hidden;
     }
+
     .menu-card:hover {
       background-color: var(--color-surface-2);
       border-color: var(--color-primary);
       transform: translateY(-4px);
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
     }
+
     .menu-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
       background: linear-gradient(90deg, transparent, transparent);
       transition: background var(--transition);
     }
+
     .menu-card:hover::before {
       background: linear-gradient(90deg, var(--color-primary), transparent);
     }
@@ -139,10 +164,11 @@
       color: var(--color-text);
       transition: color var(--transition);
     }
+
     .menu-card:hover .card-icon {
       color: var(--color-primary);
     }
-    
+
     .card-title {
       font-size: 1.25rem;
       font-weight: bold;
@@ -150,26 +176,28 @@
       align-items: center;
       justify-content: space-between;
     }
+
     .card-title .ph-caret-right {
       font-size: 1rem;
       color: var(--color-text-muted);
       transition: transform var(--transition);
     }
+
     .menu-card:hover .card-title .ph-caret-right {
       color: var(--color-primary);
       transform: translateX(4px);
     }
-    
+
     .card-desc {
       color: var(--color-text-muted);
       font-size: 0.9rem;
       line-height: 1.5;
     }
-
   </style>
 </head>
+
 <body>
-  
+
   <div class="app-container">
     <header class="header">
       <i class="ph ph-hexagon header-icon"></i>
@@ -229,4 +257,5 @@
   </div>
 
 </body>
+
 </html>
