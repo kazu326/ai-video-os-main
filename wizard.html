@@ -353,6 +353,16 @@
     .copy-btn:hover {
       border-color: var(--color-primary);
     }
+    .production-btn:disabled,
+    .copy-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    .production-btn.is-primary {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
     .production-btn.is-danger {
       color: var(--color-error);
     }
@@ -372,6 +382,27 @@
     }
     .copy-feedback.is-error {
       color: var(--color-error);
+    }
+    .step4-asset-preview {
+      width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+    }
+    .asset-status {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+    .asset-status.is-success {
+      color: var(--color-success);
+    }
+    .asset-status.is-error {
+      color: var(--color-error);
+    }
+    .asset-status.is-warning {
+      color: var(--color-warning);
     }
     .production-check {
       display: flex;
@@ -617,10 +648,13 @@
     const TOOL_LINKS_PROJECT_KEY = "default";
     const PRODUCTION_STATES_TABLE = "production_states";
     const PRODUCTION_STATE_PROJECT_KEY = "default";
+    const VIDEO_ASSETS_TABLE = "video_assets";
+    const GAS_IMAGE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxzFz23boOShS5xUacvepaGFyJe8Cve9ARu8Wl21bkpmY3DNCLKntT62a8Ifv60Eak8/exec";
 
     let brandSettingsSupabaseClient = null;
     let toolLinksSupabaseClient = null;
     let productionStateSupabaseClient = null;
+    let videoAssetsSupabaseClient = null;
 
     // ============================================================
     // State Management
@@ -659,7 +693,8 @@
         6: 0,
         7: 0,
         8: 0
-      }
+      },
+      step4PreviewUrl: ""
     };
 
     // ============================================================
@@ -1024,9 +1059,27 @@
     function createDefaultProductionState() {
       return {
         postingFrequency: 3,
+        step4Asset: createDefaultStep4Asset(),
         characters: [],
         videos: [createDefaultVideo(1), createDefaultVideo(2), createDefaultVideo(3)],
         cutBatch: createDefaultCutBatch()
+      };
+    }
+
+    function createDefaultStep4Asset() {
+      const lotId = buildDefaultLotId();
+      const sortOrder = 1;
+      return {
+        lot_id: lotId,
+        sort_order: sortOrder,
+        video_id: buildStep4VideoId(lotId, sortOrder),
+        drive_file_id: "",
+        drive_url: "",
+        image_uploaded_at: "",
+        asset_json_text: "",
+        script_raw: "",
+        status: "",
+        last_error: ""
       };
     }
 
@@ -1114,6 +1167,7 @@
       const next = createDefaultProductionState();
       if (value && typeof value === 'object') {
         next.postingFrequency = clampPostingFrequency(value.postingFrequency || next.postingFrequency);
+        next.step4Asset = normalizeStep4Asset(value.step4Asset || value.step4_asset || next.step4Asset);
         next.characters = Array.isArray(value.characters) ? value.characters : [];
         if (Array.isArray(value.videos)) {
           value.videos.slice(0, 3).forEach((video, index) => {
@@ -1131,6 +1185,27 @@
         next.cutBatch = normalizeCutBatch(value.cutBatch || value.batch || null, { allowEmpty: true });
       }
       return next;
+    }
+
+    function normalizeStep4Asset(value) {
+      const fallback = createDefaultStep4Asset();
+      const source = value && typeof value === 'object' ? value : {};
+      const sortOrder = normalizeStep4SortOrder(source.sort_order ?? source.sortOrder ?? fallback.sort_order);
+      const lotId = String(source.lot_id || source.lotId || fallback.lot_id).trim() || fallback.lot_id;
+      const videoId = String(source.video_id || source.videoId || buildStep4VideoId(lotId, sortOrder)).trim();
+
+      return {
+        lot_id: lotId,
+        sort_order: sortOrder,
+        video_id: videoId || buildStep4VideoId(lotId, sortOrder),
+        drive_file_id: String(source.drive_file_id || source.driveFileId || ""),
+        drive_url: String(source.drive_url || source.driveUrl || ""),
+        image_uploaded_at: String(source.image_uploaded_at || source.imageUploadedAt || ""),
+        asset_json_text: String(source.asset_json_text || source.assetJsonText || ""),
+        script_raw: String(source.script_raw || source.scriptRaw || ""),
+        status: String(source.status || ""),
+        last_error: String(source.last_error || source.lastError || "")
+      };
     }
 
     function normalizeCutBatch(value, options = {}) {
@@ -1220,6 +1295,7 @@
       if (!value || typeof value !== 'object') return false;
       const stateValue = ensureProductionState(value);
       if (stateValue.postingFrequency !== 3) return true;
+      if (hasStep4AssetData(stateValue.step4Asset)) return true;
       if (stateValue.characters.length > 0) return true;
       return stateValue.videos.some(video => {
         return Boolean(
@@ -1237,6 +1313,22 @@
       }) || hasCutBatchData(stateValue.cutBatch);
     }
 
+    function hasStep4AssetData(asset) {
+      if (!asset || typeof asset !== 'object') return false;
+      const fallback = createDefaultStep4Asset();
+      return Boolean(
+        asset.drive_file_id ||
+        asset.drive_url ||
+        asset.image_uploaded_at ||
+        asset.asset_json_text ||
+        asset.script_raw ||
+        asset.status ||
+        asset.last_error ||
+        asset.lot_id !== fallback.lot_id ||
+        Number(asset.sort_order) !== fallback.sort_order
+      );
+    }
+
     function isProductionStateSupabaseConfigured() {
       return Boolean(
         window.supabase &&
@@ -1251,6 +1343,22 @@
         productionStateSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
       return productionStateSupabaseClient;
+    }
+
+    function isVideoAssetsSupabaseConfigured() {
+      return Boolean(
+        window.supabase &&
+        SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+        SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+      );
+    }
+
+    function getVideoAssetsSupabaseClient() {
+      if (!isVideoAssetsSupabaseConfigured()) return null;
+      if (!videoAssetsSupabaseClient) {
+        videoAssetsSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return videoAssetsSupabaseClient;
     }
 
     async function loadProductionStateFromSupabase() {
@@ -1508,6 +1616,30 @@
       return `${year}${month}${day}`;
     }
 
+    function buildDefaultLotId() {
+      return `lot_${getTodayToken()}_a`;
+    }
+
+    function normalizeStep4SortOrder(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 1;
+      return Math.max(1, Math.floor(number));
+    }
+
+    function buildStep4VideoId(lotId, sortOrder) {
+      const safeLotId = String(lotId || buildDefaultLotId())
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "_") || buildDefaultLotId();
+      return `${safeLotId}_video_${normalizeStep4SortOrder(sortOrder)}`;
+    }
+
+    function syncStep4AssetVideoId(asset = productionState.step4Asset) {
+      if (!asset) return;
+      asset.sort_order = normalizeStep4SortOrder(asset.sort_order);
+      asset.lot_id = String(asset.lot_id || buildDefaultLotId()).trim() || buildDefaultLotId();
+      asset.video_id = buildStep4VideoId(asset.lot_id, asset.sort_order);
+    }
+
     function createCharacter(index) {
       return {
         character_id: `AIV-${getTodayToken()}-C${String(index + 1).padStart(2, '0')}`,
@@ -1549,7 +1681,6 @@
         return;
       }
 
-      if (stepId === 4) ensureCharacterCards();
       els.productionWorkspace.classList.add('is-visible');
 
       if (stepId === 3) els.productionWorkspace.innerHTML = renderStep3Production();
@@ -1572,20 +1703,53 @@
               `).join('')}
             </select>
           </label>
-          <div class="production-note">この値はSTEP 4の推奨キャラ案数に反映されます。</div>
+          <div class="production-note">この値は作業量の目安として使います。</div>
         </section>
       `;
     }
 
     function renderStep4Production() {
+      const asset = productionState.step4Asset;
+      syncStep4AssetVideoId(asset);
+      const hasDriveUrl = Boolean(asset.drive_url);
+      const isUploading = asset.status === "uploading";
+      const isSaving = asset.status === "saving";
+      const previewUrl = productionUiState.step4PreviewUrl;
       return `
         <section class="production-panel">
-          <h2 class="section-title"><i class="ph ph-user-focus"></i> キャラ案管理</h2>
-          <div class="production-note">現在の投稿頻度: 週${productionState.postingFrequency}本 / 推奨キャラ案数: ${productionState.postingFrequency}件</div>
-          <div class="production-actions">
-            <button class="production-btn" data-action="add-character"><i class="ph ph-plus"></i> キャラ案を追加</button>
+          <h2 class="section-title"><i class="ph ph-image-square"></i> STEP4 素材保存</h2>
+          <div class="production-note">STEP4 GPTsで生成した画像とJSONを保存します。画像本体はGoogle Driveに保存されます。</div>
+          <div class="production-row">
+            ${renderInput('ロットID', asset.lot_id, 'step4-asset', 'lot_id', 0)}
+            ${renderInput('ロット内順番', asset.sort_order, 'step4-asset', 'sort_order', 0, 'number')}
           </div>
-          ${productionState.characters.map((character, index) => renderCharacterCard(character, index)).join('')}
+          <div class="production-note">動画ID: ${escapeHtml(asset.video_id)}</div>
+          <label class="production-label">
+            画像アップロード
+            <input class="production-input" type="file" accept="image/*" data-step4-asset-file>
+          </label>
+          ${previewUrl ? `<img class="step4-asset-preview" src="${escapeHtml(previewUrl)}" alt="STEP4素材プレビュー">` : ''}
+          ${asset.drive_file_id ? `<div class="readonly-block">drive_file_id: ${escapeHtml(asset.drive_file_id)}</div>` : ''}
+          ${hasDriveUrl ? `
+            <label class="production-label">
+              Drive URL
+              <input class="production-input" type="text" value="${escapeHtml(asset.drive_url)}" readonly>
+            </label>
+            <div class="copy-actions">
+              <button class="copy-btn is-primary" data-action="copy-step4-drive-url"><i class="ph ph-copy"></i> Drive URLをコピー</button>
+              <span class="copy-feedback" aria-live="polite"></span>
+            </div>
+          ` : `<div class="production-note">画像アップロード後にDrive URLが表示されます。</div>`}
+          ${renderTextarea('GPTs JSON', asset.asset_json_text, 'step4-asset', 'asset_json_text', 0)}
+          ${asset.asset_json_text.trim() ? '' : `<div class="asset-status is-warning">JSON欄が空の場合、asset_json は null で保存されます。</div>`}
+          ${renderTextarea('メモ', asset.script_raw, 'step4-asset', 'script_raw', 0)}
+          <div class="production-actions">
+            <button class="production-btn is-primary" data-action="save-step4-asset" ${isUploading || isSaving ? 'disabled' : ''}>
+              <i class="ph ph-floppy-disk"></i> 保存
+            </button>
+            <span class="asset-status ${getStep4AssetStatusClass(asset)}" aria-live="polite">${escapeHtml(getStep4AssetStatusText(asset))}</span>
+          </div>
+          ${asset.last_error ? `<div class="asset-status is-error">${escapeHtml(asset.last_error)}</div>` : ''}
         </section>
       `;
     }
@@ -1954,6 +2118,208 @@
       `;
     }
 
+    function getStep4AssetStatusClass(asset) {
+      if (!asset?.status) return '';
+      if (asset.status === 'asset_uploaded' || asset.status === 'uploaded_to_drive') return 'is-success';
+      if (asset.status === 'upload_failed' || asset.status === 'save_failed') return 'is-error';
+      if (asset.status === 'uploading' || asset.status === 'saving') return 'is-warning';
+      return '';
+    }
+
+    function getStep4AssetStatusText(asset) {
+      const map = {
+        uploading: '画像をDriveへアップロード中...',
+        uploaded_to_drive: '画像アップロード済み。JSONとメモを確認して保存できます。',
+        saving: 'Supabaseへ保存中...',
+        asset_uploaded: '保存済み',
+        upload_failed: '画像アップロードに失敗しました',
+        save_failed: '保存に失敗しました'
+      };
+      return map[asset?.status] || '';
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = String(reader.result || '');
+          resolve(result.includes(',') ? result.split(',')[1] : result);
+        };
+        reader.onerror = () => reject(reader.error || new Error('画像の読み込みに失敗しました。'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadStep4AssetImage(file) {
+      const asset = productionState.step4Asset || createDefaultStep4Asset();
+      productionState.step4Asset = asset;
+      syncStep4AssetVideoId(asset);
+
+      if (productionUiState.step4PreviewUrl) URL.revokeObjectURL(productionUiState.step4PreviewUrl);
+      productionUiState.step4PreviewUrl = URL.createObjectURL(file);
+
+      asset.status = 'uploading';
+      asset.last_error = '';
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+
+      try {
+        const imageBase64 = await readFileAsBase64(file);
+        const response = await fetch(GAS_IMAGE_UPLOAD_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify({
+            file_name: file.name,
+            mime_type: file.type || 'application/octet-stream',
+            image_base64: imageBase64,
+            project_title: state.project,
+            video_id: asset.video_id,
+            lot_id: asset.lot_id,
+            sort_order: asset.sort_order
+          })
+        });
+        const responseText = await response.text();
+        const parsed = parseGasJsonResponse(responseText);
+        if (!response.ok) throw new Error(parsed?.message || `GAS upload failed: ${response.status}`);
+
+        const normalized = normalizeGasUploadResponse(parsed);
+        if (!normalized.success) throw new Error(normalized.message || 'GASアップロードに失敗しました。');
+        if (!normalized.drive_file_id && !normalized.drive_url) {
+          throw new Error('GASレスポンスからDrive情報を取得できませんでした。');
+        }
+
+        asset.drive_file_id = normalized.drive_file_id;
+        asset.drive_url = normalized.drive_url || buildDriveUrlFromFileId(normalized.drive_file_id);
+        asset.image_uploaded_at = new Date().toISOString();
+        asset.status = 'uploaded_to_drive';
+        asset.last_error = '';
+      } catch (e) {
+        asset.status = 'upload_failed';
+        asset.last_error = e.message || '画像アップロードに失敗しました。';
+        console.error('[wizard] step4 image upload failed:', e);
+      }
+
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+    }
+
+    function parseGasJsonResponse(responseText) {
+      try {
+        return JSON.parse(responseText);
+      } catch (e) {
+        return { success: false, message: responseText || e.message };
+      }
+    }
+
+    function normalizeGasUploadResponse(value) {
+      const data = value?.data && typeof value.data === 'object' ? value.data : {};
+      const driveUrl = value?.drive_url || value?.driveUrl || value?.url || value?.webViewLink || data.drive_url || data.driveUrl || data.url || data.webViewLink || '';
+      const driveFileId = value?.drive_file_id || value?.driveFileId || value?.file_id || value?.fileId || value?.id || data.drive_file_id || data.driveFileId || data.file_id || data.fileId || data.id || extractDriveFileId(driveUrl);
+      return {
+        success: value?.success !== false && !value?.error,
+        message: value?.message || value?.error || data.message || '',
+        drive_file_id: String(driveFileId || ''),
+        drive_url: String(driveUrl || '')
+      };
+    }
+
+    function extractDriveFileId(url) {
+      const text = String(url || '');
+      const fileMatch = text.match(/\/d\/([^/]+)/);
+      if (fileMatch) return fileMatch[1];
+      const queryMatch = text.match(/[?&]id=([^&]+)/);
+      return queryMatch ? decodeURIComponent(queryMatch[1]) : '';
+    }
+
+    function buildDriveUrlFromFileId(fileId) {
+      return fileId ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view` : '';
+    }
+
+    async function saveStep4AssetToSupabase() {
+      const asset = productionState.step4Asset || createDefaultStep4Asset();
+      productionState.step4Asset = asset;
+      syncStep4AssetVideoId(asset);
+
+      if (!asset.drive_file_id && !asset.drive_url) {
+        asset.status = 'save_failed';
+        asset.last_error = '先に画像をアップロードしてください。';
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
+        return;
+      }
+
+      let assetJson = null;
+      const jsonText = asset.asset_json_text.trim();
+      if (jsonText) {
+        try {
+          assetJson = JSON.parse(jsonText);
+        } catch (e) {
+          asset.status = 'save_failed';
+          asset.last_error = `JSONの構文エラー: ${e.message}`;
+          saveProductionState();
+          renderProductionWorkspace(getCurrentStepId());
+          return;
+        }
+      } else {
+        alert('JSON欄が空のため、asset_json は null で保存します。');
+      }
+
+      const client = getVideoAssetsSupabaseClient();
+      if (!client) {
+        asset.status = 'save_failed';
+        asset.last_error = 'Supabaseが設定されていません。Drive URLは画面に残しています。';
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
+        return;
+      }
+
+      asset.status = 'saving';
+      asset.last_error = '';
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+
+      const payload = {
+        project_title: state.project,
+        video_id: asset.video_id,
+        lot_id: asset.lot_id,
+        sort_order: asset.sort_order,
+        drive_file_id: asset.drive_file_id || null,
+        drive_url: asset.drive_url || null,
+        image_uploaded_at: asset.image_uploaded_at || new Date().toISOString(),
+        asset_json: assetJson,
+        script_raw: asset.script_raw || null,
+        shot_count: getShotCount(assetJson),
+        status: 'asset_uploaded'
+      };
+
+      try {
+        const { error } = await client
+          .from(VIDEO_ASSETS_TABLE)
+          .upsert(payload, { onConflict: 'project_title,video_id' });
+        if (error) throw error;
+
+        asset.status = 'asset_uploaded';
+        asset.last_error = '';
+      } catch (e) {
+        asset.status = 'save_failed';
+        asset.last_error = e.message || 'Supabase保存に失敗しました。';
+        console.error('[wizard] step4 asset save failed:', e);
+      }
+
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+    }
+
+    function getShotCount(assetJson) {
+      if (!assetJson || typeof assetJson !== 'object') return null;
+      const direct = Number(assetJson.shot_count ?? assetJson.shotCount);
+      if (Number.isFinite(direct)) return direct;
+      if (Array.isArray(assetJson.shots)) return assetJson.shots.length;
+      return null;
+    }
+
     // ============================================================
     // Production Events
     // ============================================================
@@ -1962,9 +2328,19 @@
     }
 
     function onProductionChange(event) {
+      if (event.target.dataset.step4AssetFile !== undefined) {
+        const file = event.target.files?.[0];
+        if (file) uploadStep4AssetImage(file);
+        return;
+      }
       updateProductionValue(event.target);
+      if (
+        event.target.dataset.kind === 'step4-asset' &&
+        (event.target.dataset.field === 'lot_id' || event.target.dataset.field === 'sort_order')
+      ) {
+        renderProductionWorkspace(getCurrentStepId());
+      }
       if (event.target.dataset.productionField === 'postingFrequency') {
-        ensureCharacterCards();
         saveProductionState();
       }
     }
@@ -1977,6 +2353,12 @@
 
       if (action === 'import-cut-batch') {
         importCutBatchFromInput();
+      }
+      if (action === 'save-step4-asset') {
+        saveStep4AssetToSupabase();
+      }
+      if (action === 'copy-step4-drive-url') {
+        copyText(productionState.step4Asset?.drive_url || '', button.nextElementSibling);
       }
       if (action === 'add-character') {
         productionState.characters.push(createCharacter(productionState.characters.length));
@@ -2038,6 +2420,16 @@
       if (kind === 'character') {
         const character = productionState.characters[Number(target.dataset.characterIndex)];
         if (character) character[field] = value;
+      }
+      if (kind === 'step4-asset') {
+        const asset = productionState.step4Asset || createDefaultStep4Asset();
+        productionState.step4Asset = asset;
+        if (field === 'sort_order') {
+          asset[field] = normalizeStep4SortOrder(value);
+        } else {
+          asset[field] = String(value || '');
+        }
+        if (field === 'lot_id' || field === 'sort_order') syncStep4AssetVideoId(asset);
       }
       if (kind === 'video') {
         const video = productionState.videos[Number(target.dataset.videoIndex)];

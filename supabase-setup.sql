@@ -71,6 +71,37 @@ CREATE TRIGGER trg_production_states_updated_at
   BEFORE UPDATE ON production_states
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- video_assets table for STEP4 Drive asset metadata.
+-- Image binaries are stored in Google Drive; Supabase stores metadata only.
+CREATE TABLE IF NOT EXISTS video_assets (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_title     text NOT NULL,
+  video_id          text NOT NULL,
+  lot_id            text,
+  sort_order        integer,
+  drive_file_id     text,
+  drive_url         text,
+  image_uploaded_at timestamptz,
+  asset_json        jsonb,
+  script_raw        text,
+  shot_count        integer,
+  status            text NOT NULL DEFAULT 'draft',
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (project_title, video_id)
+);
+
+DROP TRIGGER IF EXISTS trg_video_assets_updated_at ON video_assets;
+CREATE TRIGGER trg_video_assets_updated_at
+  BEFORE UPDATE ON video_assets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_video_assets_project_lot_order
+  ON video_assets (project_title, lot_id, sort_order);
+
+CREATE INDEX IF NOT EXISTS idx_video_assets_updated_at
+  ON video_assets (updated_at DESC);
+
 -- ============================================================
 -- RLS（Row Level Security）
 -- MVP では OFF のまま。有効化する場合は以下をコメント解除。
