@@ -58,6 +58,19 @@ CREATE INDEX IF NOT EXISTS idx_tool_links_project_step_media
 CREATE INDEX IF NOT EXISTS idx_tool_links_updated_at
   ON tool_links (updated_at DESC);
 
+-- production_states table for shared aiVideoOsProductionState.
+-- Do not store production state in projects.data JSONB.
+CREATE TABLE IF NOT EXISTS production_states (
+  project_key text PRIMARY KEY DEFAULT 'default',
+  data        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+DROP TRIGGER IF EXISTS trg_production_states_updated_at ON production_states;
+CREATE TRIGGER trg_production_states_updated_at
+  BEFORE UPDATE ON production_states
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- ============================================================
 -- RLS（Row Level Security）
 -- MVP では OFF のまま。有効化する場合は以下をコメント解除。

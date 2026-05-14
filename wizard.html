@@ -615,9 +615,12 @@
     const BRAND_SETTINGS_PROJECT_KEY = "default";
     const TOOL_LINKS_TABLE = "tool_links";
     const TOOL_LINKS_PROJECT_KEY = "default";
+    const PRODUCTION_STATES_TABLE = "production_states";
+    const PRODUCTION_STATE_PROJECT_KEY = "default";
 
     let brandSettingsSupabaseClient = null;
     let toolLinksSupabaseClient = null;
+    let productionStateSupabaseClient = null;
 
     // ============================================================
     // State Management
@@ -645,11 +648,17 @@
     };
 
     let productionState = createDefaultProductionState();
+    let productionStateDirty = false;
+    let productionStateHydrated = false;
+    let productionStateSyncPending = false;
+    let productionStateUpdatedAt = null;
+    let productionStateSaveTimer = null;
     const productionUiState = {
       activeVideoByStep: {
         5: 0,
         6: 0,
-        7: 0
+        7: 0,
+        8: 0
       }
     };
 
@@ -713,7 +722,7 @@
       state.brandSettings = normalizeBrandSettings(typeof getBrandSettings === 'function' ? getBrandSettings() : {});
 
       productionState = loadProductionState();
-      saveProductionState();
+      saveProductionState({ sync: false, markDirty: false });
 
       // Setup Header UI
       els.displayProject.textContent = state.project;
@@ -735,6 +744,7 @@
 
       // Start first step
       renderCurrentStep();
+      hydrateProductionStateFromSupabase();
       hydrateBrandSettingsFromSupabase();
       hydrateToolLinksFromSupabase();
     }
@@ -1015,7 +1025,16 @@
       return {
         postingFrequency: 3,
         characters: [],
-        videos: [createDefaultVideo(1), createDefaultVideo(2), createDefaultVideo(3)]
+        videos: [createDefaultVideo(1), createDefaultVideo(2), createDefaultVideo(3)],
+        cutBatch: createDefaultCutBatch()
+      };
+    }
+
+    function createDefaultCutBatch() {
+      return {
+        batchId: "",
+        batchTitle: "",
+        videos: []
       };
     }
 
@@ -1055,6 +1074,24 @@
       };
     }
 
+    function createDefaultCutStatus() {
+      return {
+        videoPromptCopied: false,
+        videoGenerated: false,
+        voiceCopied: false,
+        voiceGenerated: false,
+        edited: false,
+        voiceRegenerateNeeded: false
+      };
+    }
+
+    function createDefaultCutNotes() {
+      return {
+        voiceRegenerateReason: "",
+        editNote: ""
+      };
+    }
+
     function loadProductionState() {
       try {
         const raw = localStorage.getItem(PRODUCTION_STORAGE_KEY);
@@ -1066,8 +1103,11 @@
       }
     }
 
-    function saveProductionState() {
+    function saveProductionState(options = {}) {
+      const { sync = true, markDirty = true } = options;
       localStorage.setItem(PRODUCTION_STORAGE_KEY, JSON.stringify(productionState));
+      if (markDirty) productionStateDirty = true;
+      if (sync) scheduleProductionStateSave();
     }
 
     function ensureProductionState(value) {
@@ -1088,9 +1128,217 @@
             });
           });
         }
+        next.cutBatch = normalizeCutBatch(value.cutBatch || value.batch || null, { allowEmpty: true });
       }
       return next;
     }
+
+    function normalizeCutBatch(value, options = {}) {
+      const { allowEmpty = false } = options;
+      if (!value || typeof value !== 'object') return createDefaultCutBatch();
+
+      const videos = Array.isArray(value.videos) ? value.videos : [];
+      if (!allowEmpty && videos.length === 0) return createDefaultCutBatch();
+
+      return {
+        batchId: String(value.batchId || value.batch_id || ""),
+        batchTitle: String(value.batchTitle || value.batch_title || ""),
+        videos: videos.map((video, videoIndex) => normalizeCutBatchVideo(video, videoIndex))
+      };
+    }
+
+    function normalizeCutBatchVideo(video, videoIndex) {
+      const cuts = Array.isArray(video?.cuts) ? video.cuts : [];
+      return {
+        videoId: String(video?.videoId || video?.video_id || `video_${String(videoIndex + 1).padStart(2, '0')}`),
+        videoTitle: String(video?.videoTitle || video?.video_title || `動画${videoIndex + 1}`),
+        duration: Number(video?.duration) || 0,
+        cuts: cuts.map((cut, cutIndex) => normalizeCut(cut, cutIndex))
+      };
+    }
+
+    function normalizeCut(cut, cutIndex) {
+      return {
+        cutId: String(cut?.cutId || cut?.cut_id || `cut_${String(cutIndex + 1).padStart(2, '0')}`),
+        timeRange: String(cut?.timeRange || cut?.time_range || ""),
+        videoPrompt: String(cut?.videoPrompt || cut?.video_prompt || ""),
+        line: String(cut?.line || ""),
+        caption: String(cut?.caption || cut?.line || ""),
+        status: {
+          ...createDefaultCutStatus(),
+          ...(cut?.status && typeof cut.status === 'object' ? cut.status : {})
+        },
+        notes: {
+          ...createDefaultCutNotes(),
+          ...(cut?.notes && typeof cut.notes === 'object' ? cut.notes : {})
+        }
+      };
+    }
+
+    function hasCutBatchData(cutBatch = productionState.cutBatch) {
+      return Boolean(
+        cutBatch &&
+        Array.isArray(cutBatch.videos) &&
+        cutBatch.videos.some(video => Array.isArray(video.cuts) && video.cuts.length > 0)
+      );
+    }
+
+    function validateCutBatchImport(value) {
+      const errors = [];
+      if (!value || typeof value !== 'object') {
+        return ["JSONのルートはオブジェクトにしてください。"];
+      }
+      if (!value.batchId) errors.push("batchId");
+      if (!value.batchTitle) errors.push("batchTitle");
+      if (!Array.isArray(value.videos) || value.videos.length === 0) {
+        errors.push("videos（1件以上）");
+        return errors;
+      }
+
+      value.videos.forEach((video, videoIndex) => {
+        const videoPath = `videos[${videoIndex}]`;
+        if (!video.videoId) errors.push(`${videoPath}.videoId`);
+        if (!video.videoTitle) errors.push(`${videoPath}.videoTitle`);
+        if (video.duration === undefined || video.duration === null) errors.push(`${videoPath}.duration`);
+        if (!Array.isArray(video.cuts) || video.cuts.length === 0) {
+          errors.push(`${videoPath}.cuts（1件以上）`);
+          return;
+        }
+        video.cuts.forEach((cut, cutIndex) => {
+          const cutPath = `${videoPath}.cuts[${cutIndex}]`;
+          if (!cut.cutId) errors.push(`${cutPath}.cutId`);
+          if (!cut.timeRange) errors.push(`${cutPath}.timeRange`);
+          if (!cut.videoPrompt) errors.push(`${cutPath}.videoPrompt`);
+          if (!cut.line) errors.push(`${cutPath}.line`);
+        });
+      });
+
+      return errors;
+    }
+
+    function hasProductionStateData(value) {
+      if (!value || typeof value !== 'object') return false;
+      const stateValue = ensureProductionState(value);
+      if (stateValue.postingFrequency !== 3) return true;
+      if (stateValue.characters.length > 0) return true;
+      return stateValue.videos.some(video => {
+        return Boolean(
+          video.linked_character_id ||
+          video.script_title ||
+          video.hook ||
+          video.full_dialogue ||
+          video.caption_dialogue ||
+          video.voice_dialogue ||
+          video.scene_description_en ||
+          video.visual_prompt ||
+          video.memo ||
+          (Array.isArray(video.scenes) && video.scenes.length > 0)
+        );
+      }) || hasCutBatchData(stateValue.cutBatch);
+    }
+
+    function isProductionStateSupabaseConfigured() {
+      return Boolean(
+        window.supabase &&
+        SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+        SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY"
+      );
+    }
+
+    function getProductionStateSupabaseClient() {
+      if (!isProductionStateSupabaseConfigured()) return null;
+      if (!productionStateSupabaseClient) {
+        productionStateSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return productionStateSupabaseClient;
+    }
+
+    async function loadProductionStateFromSupabase() {
+      const client = getProductionStateSupabaseClient();
+      if (!client) return null;
+
+      const { data, error } = await client
+        .from(PRODUCTION_STATES_TABLE)
+        .select('data, updated_at')
+        .eq('project_key', PRODUCTION_STATE_PROJECT_KEY)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data || !hasProductionStateData(data.data)) return null;
+      return {
+        data: ensureProductionState(data.data),
+        updatedAt: data.updated_at || null
+      };
+    }
+
+    async function saveProductionStateToSupabase() {
+      const client = getProductionStateSupabaseClient();
+      if (!client) throw new Error("Supabase is not configured.");
+      if (!hasProductionStateData(productionState)) {
+        productionStateSyncPending = false;
+        return;
+      }
+
+      const updatedAt = new Date().toISOString();
+      const { error } = await client
+        .from(PRODUCTION_STATES_TABLE)
+        .upsert({
+          project_key: PRODUCTION_STATE_PROJECT_KEY,
+          data: ensureProductionState(productionState),
+          updated_at: updatedAt
+        }, { onConflict: 'project_key' });
+
+      if (error) throw error;
+      productionStateUpdatedAt = updatedAt;
+      productionStateSyncPending = false;
+    }
+
+    function scheduleProductionStateSave() {
+      productionStateSyncPending = true;
+      clearTimeout(productionStateSaveTimer);
+      productionStateSaveTimer = setTimeout(() => {
+        saveProductionStateToSupabase().catch(e => {
+          productionStateSyncPending = true;
+          console.error("[wizard] production state cloud save failed:", e);
+        });
+      }, 1200);
+    }
+
+    async function hydrateProductionStateFromSupabase() {
+      try {
+        const cloudState = await loadProductionStateFromSupabase();
+        if (cloudState) {
+          if (productionStateDirty) return;
+          productionState = cloudState.data;
+          productionStateUpdatedAt = cloudState.updatedAt;
+          productionStateHydrated = true;
+          saveProductionState({ sync: false, markDirty: false });
+          const currentStepId = getCurrentStepId();
+          if (currentStepId >= 3 && currentStepId <= 7) {
+            renderProductionWorkspace(currentStepId);
+          }
+          return;
+        }
+
+        productionStateHydrated = true;
+        if (hasProductionStateData(productionState)) {
+          await saveProductionStateToSupabase();
+        }
+      } catch (e) {
+        productionStateHydrated = true;
+        productionStateSyncPending = hasProductionStateData(productionState);
+        console.error("[wizard] production state cloud load failed:", e);
+      }
+    }
+
+    window.addEventListener('online', () => {
+      if (productionStateSyncPending) {
+        saveProductionStateToSupabase().catch(e => {
+          productionStateSyncPending = true;
+          console.error("[wizard] production state reconnect sync failed:", e);
+        });
+      }
+    });
 
     function isToolLinksSupabaseConfigured() {
       return Boolean(
@@ -1295,7 +1543,7 @@
     // Production Render
     // ============================================================
     function renderProductionWorkspace(stepId) {
-      if (stepId < 3 || stepId > 7) {
+      if (stepId < 3 || stepId > 8) {
         els.productionWorkspace.classList.remove('is-visible');
         els.productionWorkspace.innerHTML = '';
         return;
@@ -1309,6 +1557,7 @@
       if (stepId === 5) els.productionWorkspace.innerHTML = renderStep5Production();
       if (stepId === 6) els.productionWorkspace.innerHTML = renderStep6Production();
       if (stepId === 7) els.productionWorkspace.innerHTML = renderStep7Production();
+      if (stepId === 8) els.productionWorkspace.innerHTML = renderStep8Production();
     }
 
     function renderStep3Production() {
@@ -1434,13 +1683,31 @@
     }
 
     function renderStep6Production() {
+      if (hasCutBatchData()) return renderStep6BatchProduction();
+
       const activeIndex = productionUiState.activeVideoByStep[6];
       const video = productionState.videos[activeIndex];
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-video-camera"></i> 映像・動画素材生成</h2>
+          ${renderCutBatchImportPanel()}
+          ${renderCutBatchMissingNote()}
           ${renderVideoTabs(6)}
           ${video.scenes.map((scene, sceneIndex) => renderVideoScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
+        </section>
+      `;
+    }
+
+    function renderStep6BatchProduction() {
+      const activeIndex = getActiveCutBatchVideoIndex(6);
+      const video = productionState.cutBatch.videos[activeIndex];
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-video-camera"></i> 映像・動画素材生成</h2>
+          ${renderCutBatchImportPanel()}
+          ${renderCutBatchSummary()}
+          ${renderCutBatchVideoTabs(6)}
+          ${video.cuts.map((cut, cutIndex) => renderVideoCutCard(cut, activeIndex, cutIndex)).join('')}
         </section>
       `;
     }
@@ -1464,13 +1731,29 @@
     }
 
     function renderStep7Production() {
+      if (hasCutBatchData()) return renderStep7BatchProduction();
+
       const activeIndex = productionUiState.activeVideoByStep[7];
       const video = productionState.videos[activeIndex];
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-microphone-stage"></i> ナレーション・音声生成</h2>
+          ${renderCutBatchMissingNote()}
           ${renderVideoTabs(7)}
           ${video.scenes.map((scene, sceneIndex) => renderVoiceScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
+        </section>
+      `;
+    }
+
+    function renderStep7BatchProduction() {
+      const activeIndex = getActiveCutBatchVideoIndex(7);
+      const video = productionState.cutBatch.videos[activeIndex];
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-microphone-stage"></i> ナレーション・音声生成</h2>
+          ${renderCutBatchSummary()}
+          ${renderCutBatchVideoTabs(7)}
+          ${video.cuts.map((cut, cutIndex) => renderVoiceCutCard(cut, activeIndex, cutIndex)).join('')}
         </section>
       `;
     }
@@ -1490,6 +1773,147 @@
           </label>
           ${renderInput('音声ファイルURL', scene.voice_output_url, 'scene', 'voice_output_url', videoIndex, 'text', false, sceneIndex)}
         </div>
+      `;
+    }
+
+    function renderStep8Production() {
+      if (!hasCutBatchData()) {
+        return `
+          <section class="production-panel">
+            <h2 class="section-title"><i class="ph ph-scissors"></i> 編集・仕上げ</h2>
+            ${renderCutBatchMissingNote()}
+          </section>
+        `;
+      }
+
+      const activeIndex = getActiveCutBatchVideoIndex(8);
+      const video = productionState.cutBatch.videos[activeIndex];
+      return `
+        <section class="production-panel">
+          <h2 class="section-title"><i class="ph ph-scissors"></i> 編集・仕上げ</h2>
+          ${renderCutBatchSummary()}
+          ${renderCutBatchVideoTabs(8)}
+          ${video.cuts.map((cut, cutIndex) => renderEditCutCard(cut, activeIndex, cutIndex)).join('')}
+        </section>
+      `;
+    }
+
+    function renderCutBatchImportPanel() {
+      return `
+        <div class="production-card">
+          <h3 class="section-title"><i class="ph ph-brackets-curly"></i> GPTs JSON取り込み</h3>
+          <label class="production-label">
+            6秒カットJSON
+            <textarea class="production-textarea" data-cut-batch-import placeholder='{"batchId":"batch_001","batchTitle":"AI動画制作バッチ","videos":[...]}'></textarea>
+          </label>
+          <div class="production-actions">
+            <button class="production-btn is-primary" data-action="import-cut-batch"><i class="ph ph-upload-simple"></i> JSONを読み込む</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCutBatchMissingNote() {
+      return `<div class="production-note">6秒カットJSONが未登録です。STEP 6上部でGPTs JSONを読み込むと、STEP 6〜8でカット単位のコピー・チェック・編集メモを管理できます。</div>`;
+    }
+
+    function renderCutBatchSummary() {
+      const batch = productionState.cutBatch;
+      return `<div class="production-note">${escapeHtml(batch.batchTitle || batch.batchId || 'カットバッチ')} / ${batch.videos.length}動画</div>`;
+    }
+
+    function getActiveCutBatchVideoIndex(stepId) {
+      const videos = productionState.cutBatch?.videos || [];
+      const current = productionUiState.activeVideoByStep[stepId] || 0;
+      if (current >= 0 && current < videos.length) return current;
+      productionUiState.activeVideoByStep[stepId] = 0;
+      return 0;
+    }
+
+    function renderCutBatchVideoTabs(stepId) {
+      const videos = productionState.cutBatch?.videos || [];
+      const activeIndex = getActiveCutBatchVideoIndex(stepId);
+      return `
+        <div class="production-tabs">
+          ${videos.map((video, index) => `
+            <button class="production-tab ${activeIndex === index ? 'is-active' : ''}" data-action="select-video" data-step-id="${stepId}" data-video-index="${index}">
+              ${escapeHtml(video.videoTitle || video.videoId || `動画${index + 1}`)}
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderVideoCutCard(cut, videoIndex, cutIndex) {
+      return `
+        <div class="production-card">
+          <div class="production-actions">
+            <strong>${escapeHtml(cut.timeRange)}秒 / ${escapeHtml(cut.cutId)}</strong>
+          </div>
+          <div class="readonly-block">${escapeHtml(cut.videoPrompt)}</div>
+          <div class="copy-actions">
+            ${renderBatchCopyButton('映像プロンプトをコピー', 'videoPrompt', videoIndex, cutIndex, true)}
+          </div>
+          ${renderCutStatusCheck('プロンプトコピー済み', 'videoPromptCopied', cut, videoIndex, cutIndex)}
+          ${renderCutStatusCheck('動画生成済み', 'videoGenerated', cut, videoIndex, cutIndex)}
+        </div>
+      `;
+    }
+
+    function renderVoiceCutCard(cut, videoIndex, cutIndex) {
+      return `
+        <div class="production-card">
+          <div class="production-actions">
+            <strong>${escapeHtml(cut.timeRange)}秒 / ${escapeHtml(cut.cutId)}</strong>
+          </div>
+          <div class="readonly-block">${escapeHtml(cut.line || cut.caption)}</div>
+          ${cut.caption && cut.caption !== cut.line ? `<div class="production-note">テロップ: ${escapeHtml(cut.caption)}</div>` : ''}
+          <div class="copy-actions">
+            ${renderBatchCopyButton('音声・テロップ文をコピー', 'voiceLine', videoIndex, cutIndex, true)}
+          </div>
+          ${renderCutStatusCheck('音声コピー済み', 'voiceCopied', cut, videoIndex, cutIndex)}
+          ${renderCutStatusCheck('音声生成済み', 'voiceGenerated', cut, videoIndex, cutIndex)}
+        </div>
+      `;
+    }
+
+    function renderEditCutCard(cut, videoIndex, cutIndex) {
+      return `
+        <div class="production-card">
+          <div class="production-actions">
+            <strong>${escapeHtml(cut.timeRange)}秒 / ${escapeHtml(cut.cutId)}</strong>
+          </div>
+          <div class="readonly-block">${escapeHtml(cut.line || cut.caption)}</div>
+          ${renderCutStatusCheck('編集済み', 'edited', cut, videoIndex, cutIndex)}
+          ${renderCutStatusCheck('音声再生成が必要', 'voiceRegenerateNeeded', cut, videoIndex, cutIndex)}
+          ${renderCutNoteTextarea('音声再生成理由', 'voiceRegenerateReason', cut.notes.voiceRegenerateReason, videoIndex, cutIndex)}
+          ${renderCutNoteTextarea('編集メモ', 'editNote', cut.notes.editNote, videoIndex, cutIndex)}
+        </div>
+      `;
+    }
+
+    function renderCutStatusCheck(label, field, cut, videoIndex, cutIndex) {
+      return `
+        <label class="production-check">
+          <input type="checkbox" data-kind="cut-status" data-field="${field}" data-video-index="${videoIndex}" data-cut-index="${cutIndex}" ${cut.status[field] ? 'checked' : ''}>
+          ${label}
+        </label>
+      `;
+    }
+
+    function renderCutNoteTextarea(label, field, value, videoIndex, cutIndex) {
+      return `
+        <label class="production-label">
+          ${label}
+          <textarea class="production-textarea" data-kind="cut-note" data-field="${field}" data-video-index="${videoIndex}" data-cut-index="${cutIndex}">${escapeHtml(value || '')}</textarea>
+        </label>
+      `;
+    }
+
+    function renderBatchCopyButton(label, type, videoIndex, cutIndex, isPrimary = false) {
+      return `
+        <button class="copy-btn ${isPrimary ? 'is-primary' : ''}" data-action="copy-cut" data-copy-type="${type}" data-video-index="${videoIndex}" data-cut-index="${cutIndex}">${label}</button>
+        <span class="copy-feedback" aria-live="polite"></span>
       `;
     }
 
@@ -1551,6 +1975,9 @@
       const action = button.dataset.action;
       if (!action) return;
 
+      if (action === 'import-cut-batch') {
+        importCutBatchFromInput();
+      }
       if (action === 'add-character') {
         productionState.characters.push(createCharacter(productionState.characters.length));
         saveProductionState();
@@ -1588,6 +2015,10 @@
         const text = getCopyText(button.dataset.copyType, Number(button.dataset.videoIndex), button.dataset.sceneIndex === undefined ? null : Number(button.dataset.sceneIndex));
         copyText(text, button.nextElementSibling);
       }
+      if (action === 'copy-cut') {
+        const copied = copyCutText(button.dataset.copyType, Number(button.dataset.videoIndex), Number(button.dataset.cutIndex), button.nextElementSibling);
+        if (copied) saveProductionState();
+      }
     }
 
     function updateProductionValue(target) {
@@ -1617,11 +2048,48 @@
         const scene = video?.scenes[Number(target.dataset.sceneIndex)];
         if (scene) scene[field] = value;
       }
+      if (kind === 'cut-status') {
+        const cut = getCut(Number(target.dataset.videoIndex), Number(target.dataset.cutIndex));
+        if (cut && cut.status && field in cut.status) cut.status[field] = Boolean(value);
+      }
+      if (kind === 'cut-note') {
+        const cut = getCut(Number(target.dataset.videoIndex), Number(target.dataset.cutIndex));
+        if (cut && cut.notes && field in cut.notes) cut.notes[field] = String(value || '');
+      }
       saveProductionState();
     }
 
     function getCurrentStepId() {
       return state.targetSteps[state.currentIndex]?.id;
+    }
+
+    function importCutBatchFromInput() {
+      const input = els.productionWorkspace.querySelector('textarea[data-cut-batch-import]');
+      if (!input) return;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(input.value);
+      } catch (e) {
+        alert(`JSONの読み込みに失敗しました。\n構文エラー: ${e.message}`);
+        return;
+      }
+
+      const errors = validateCutBatchImport(parsed);
+      if (errors.length > 0) {
+        alert(`JSONの必須項目が不足しています。\n- ${errors.join('\n- ')}`);
+        return;
+      }
+
+      if (hasCutBatchData() && !confirm('既存の6秒カットバッチを全置換します。続行しますか？')) return;
+
+      productionState.cutBatch = normalizeCutBatch(parsed);
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+    }
+
+    function getCut(videoIndex, cutIndex) {
+      return productionState.cutBatch?.videos?.[videoIndex]?.cuts?.[cutIndex] || null;
     }
 
     // ============================================================
@@ -1662,6 +2130,30 @@
         sceneVoice: scene?.voice_dialogue || scene?.dialogue || ''
       };
       return map[type] || '';
+    }
+
+    function copyCutText(type, videoIndex, cutIndex, feedbackElement) {
+      const cut = getCut(videoIndex, cutIndex);
+      if (!cut) return false;
+      const map = {
+        videoPrompt: cut.videoPrompt || '',
+        voiceLine: cut.line || cut.caption || ''
+      };
+      const text = map[type] || '';
+      copyText(text, feedbackElement);
+
+      if (type === 'videoPrompt') {
+        cut.status.videoPromptCopied = true;
+        const checkbox = els.productionWorkspace.querySelector(`input[data-kind="cut-status"][data-field="videoPromptCopied"][data-video-index="${videoIndex}"][data-cut-index="${cutIndex}"]`);
+        if (checkbox) checkbox.checked = true;
+      }
+      if (type === 'voiceLine') {
+        cut.status.voiceCopied = true;
+        const checkbox = els.productionWorkspace.querySelector(`input[data-kind="cut-status"][data-field="voiceCopied"][data-video-index="${videoIndex}"][data-cut-index="${cutIndex}"]`);
+        if (checkbox) checkbox.checked = true;
+      }
+
+      return true;
     }
 
     function buildVideoPrompt(video) {
