@@ -2138,16 +2138,52 @@
       return map[asset?.status] || '';
     }
 
-    function readFileAsBase64(file) {
+    function validateStep4ImageFile(file) {
+      if (!file) {
+        throw new Error('画像ファイルを取得できませんでした。もう一度選択してください。');
+      }
+      if (!file.name) {
+        throw new Error('画像ファイル名を取得できませんでした。');
+      }
+      if (file.type && !file.type.startsWith('image/')) {
+        throw new Error('画像ファイルを選択してください。');
+      }
+    }
+
+    function extractBase64FromDataUrl(dataUrl) {
+      if (typeof dataUrl !== 'string' || dataUrl.length === 0) {
+        throw new Error('画像データの読み込みに失敗しました。');
+      }
+      if (!dataUrl.includes(',')) {
+        return dataUrl;
+      }
+
+      const base64 = dataUrl.split(',')[1];
+      if (!base64) {
+        throw new Error('画像データの読み込みに失敗しました。base64データが空です。');
+      }
+      return base64;
+    }
+
+    function readFileAsDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          const result = String(reader.result || '');
-          resolve(result.includes(',') ? result.split(',')[1] : result);
+          const dataUrl = reader.result;
+          if (typeof dataUrl !== 'string') {
+            reject(new Error('画像データの読み込みに失敗しました。'));
+            return;
+          }
+          resolve(dataUrl);
         };
         reader.onerror = () => reject(reader.error || new Error('画像の読み込みに失敗しました。'));
         reader.readAsDataURL(file);
       });
+    }
+
+    async function readFileAsBase64(file) {
+      const dataUrl = await readFileAsDataUrl(file);
+      return extractBase64FromDataUrl(dataUrl);
     }
 
     async function uploadStep4AssetImage(file) {
@@ -2155,15 +2191,17 @@
       productionState.step4Asset = asset;
       syncStep4AssetVideoId(asset);
 
-      if (productionUiState.step4PreviewUrl) URL.revokeObjectURL(productionUiState.step4PreviewUrl);
-      productionUiState.step4PreviewUrl = URL.createObjectURL(file);
-
       asset.status = 'uploading';
       asset.last_error = '';
       saveProductionState();
       renderProductionWorkspace(getCurrentStepId());
 
       try {
+        validateStep4ImageFile(file);
+        if (productionUiState.step4PreviewUrl) URL.revokeObjectURL(productionUiState.step4PreviewUrl);
+        productionUiState.step4PreviewUrl = URL.createObjectURL(file);
+        renderProductionWorkspace(getCurrentStepId());
+
         const imageBase64 = await readFileAsBase64(file);
         const response = await fetch(GAS_IMAGE_UPLOAD_URL, {
           method: 'POST',
@@ -2330,7 +2368,16 @@
     function onProductionChange(event) {
       if (event.target.dataset.step4AssetFile !== undefined) {
         const file = event.target.files?.[0];
-        if (file) uploadStep4AssetImage(file);
+        if (file) {
+          uploadStep4AssetImage(file);
+          return;
+        }
+        const asset = productionState.step4Asset || createDefaultStep4Asset();
+        productionState.step4Asset = asset;
+        asset.status = 'upload_failed';
+        asset.last_error = '画像ファイルを取得できませんでした。もう一度選択してください。';
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
         return;
       }
       updateProductionValue(event.target);
