@@ -372,6 +372,13 @@
       border-color: var(--color-primary);
       color: #fff;
     }
+    .production-tab .asset-indicator {
+      display: inline-block;
+      margin-left: var(--space-1);
+      font-size: 0.7rem;
+      line-height: 1;
+      opacity: 0.9;
+    }
     .production-note,
     .copy-feedback {
       color: var(--color-text-muted);
@@ -420,6 +427,25 @@
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       font-size: 0.9rem;
+    }
+    .script-info-grid {
+      display: grid;
+      gap: var(--space-2);
+    }
+    .script-info-item {
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3);
+    }
+    .script-info-item strong {
+      display: block;
+      color: var(--color-text-muted);
+      font-size: 0.75rem;
+      margin-bottom: var(--space-1);
+    }
+    .script-info-item span {
+      overflow-wrap: anywhere;
     }
     @media (min-width: 700px) {
       .production-row {
@@ -694,7 +720,7 @@
         7: 0,
         8: 0
       },
-      step4PreviewUrl: ""
+      step4PreviewUrls: ["", "", ""]
     };
 
     // ============================================================
@@ -1057,28 +1083,57 @@
     // Production State
     // ============================================================
     function createDefaultProductionState() {
+      const step4Assets = createDefaultStep4Assets();
       return {
         postingFrequency: 3,
-        step4Asset: createDefaultStep4Asset(),
+        step4Assets,
+        step5Scripts: createDefaultStep5Scripts(step4Assets),
         characters: [],
         videos: [createDefaultVideo(1), createDefaultVideo(2), createDefaultVideo(3)],
         cutBatch: createDefaultCutBatch()
       };
     }
 
-    function createDefaultStep4Asset() {
-      const lotId = buildDefaultLotId();
-      const sortOrder = 1;
+    function createDefaultStep4Assets(lotId = buildDefaultLotId()) {
+      return {
+        activeIndex: 0,
+        items: [1, 2, 3].map(sortOrder => createDefaultStep4Asset(sortOrder, lotId))
+      };
+    }
+
+    function createDefaultStep4Asset(sortOrder = 1, lotId = buildDefaultLotId()) {
+      const normalizedSortOrder = normalizeStep4SortOrder(sortOrder);
       return {
         lot_id: lotId,
-        sort_order: sortOrder,
-        video_id: buildStep4VideoId(lotId, sortOrder),
+        sort_order: normalizedSortOrder,
+        video_id: generateVideoId(lotId, normalizedSortOrder),
+        image_url: "",
         drive_file_id: "",
         drive_url: "",
         image_uploaded_at: "",
         asset_json_text: "",
-        script_raw: "",
-        status: "",
+        asset_json: null,
+        memo: "",
+        status: "draft",
+        last_error: ""
+      };
+    }
+
+    function createDefaultStep5Scripts(assets = null) {
+      const sourceAssets = assets?.items || createDefaultStep4Assets().items;
+      return {
+        activeIndex: 0,
+        items: sourceAssets.map(asset => createDefaultStep5Script(asset))
+      };
+    }
+
+    function createDefaultStep5Script(asset = createDefaultStep4Asset()) {
+      return {
+        video_id: asset.video_id,
+        script_json_text: "",
+        script_json: null,
+        status: "draft",
+        updated_at: "",
         last_error: ""
       };
     }
@@ -1167,7 +1222,8 @@
       const next = createDefaultProductionState();
       if (value && typeof value === 'object') {
         next.postingFrequency = clampPostingFrequency(value.postingFrequency || next.postingFrequency);
-        next.step4Asset = normalizeStep4Asset(value.step4Asset || value.step4_asset || next.step4Asset);
+        next.step4Assets = normalizeStep4Assets(value.step4Assets || value.step4_assets || null, value.step4Asset || value.step4_asset || null);
+        next.step5Scripts = normalizeStep5Scripts(value.step5Scripts || value.step5_scripts || null, next.step4Assets);
         next.characters = Array.isArray(value.characters) ? value.characters : [];
         if (Array.isArray(value.videos)) {
           value.videos.slice(0, 3).forEach((video, index) => {
@@ -1184,28 +1240,78 @@
         }
         next.cutBatch = normalizeCutBatch(value.cutBatch || value.batch || null, { allowEmpty: true });
       }
+      syncStep5ScriptsWithAssets(next);
       return next;
     }
 
-    function normalizeStep4Asset(value) {
-      const fallback = createDefaultStep4Asset();
+    function normalizeStep4Assets(value, legacyAsset = null) {
       const source = value && typeof value === 'object' ? value : {};
-      const sortOrder = normalizeStep4SortOrder(source.sort_order ?? source.sortOrder ?? fallback.sort_order);
-      const lotId = String(source.lot_id || source.lotId || fallback.lot_id).trim() || fallback.lot_id;
-      const videoId = String(source.video_id || source.videoId || buildStep4VideoId(lotId, sortOrder)).trim();
+      const sourceItems = Array.isArray(source.items) ? source.items : [];
+      const firstSource = sourceItems[0] || legacyAsset || {};
+      const lotId = String(firstSource.lot_id || firstSource.lotId || buildDefaultLotId()).trim() || buildDefaultLotId();
+      const activeIndex = clampAssetIndex(source.activeIndex ?? source.active_index ?? 0);
+      const items = [0, 1, 2].map(index => {
+        const sourceItem = sourceItems[index] || (index === 0 ? legacyAsset : null);
+        return normalizeStep4Asset(sourceItem, index, lotId);
+      });
+      return { activeIndex, items };
+    }
+
+    function normalizeStep4Asset(value, index = 0, lotIdOverride = "") {
+      const sortOrder = index + 1;
+      const fallback = createDefaultStep4Asset(sortOrder, lotIdOverride || buildDefaultLotId());
+      const source = value && typeof value === 'object' ? value : {};
+      const lotId = String(lotIdOverride || source.lot_id || source.lotId || fallback.lot_id).trim() || fallback.lot_id;
+      const assetJsonText = String(source.asset_json_text || source.assetJsonText || "");
+      const parsedJson = getStoredJsonValue(source.asset_json ?? source.assetJson, assetJsonText);
 
       return {
         lot_id: lotId,
         sort_order: sortOrder,
-        video_id: videoId || buildStep4VideoId(lotId, sortOrder),
+        video_id: generateVideoId(lotId, sortOrder),
+        image_url: String(source.image_url || source.imageUrl || ""),
         drive_file_id: String(source.drive_file_id || source.driveFileId || ""),
         drive_url: String(source.drive_url || source.driveUrl || ""),
         image_uploaded_at: String(source.image_uploaded_at || source.imageUploadedAt || ""),
-        asset_json_text: String(source.asset_json_text || source.assetJsonText || ""),
-        script_raw: String(source.script_raw || source.scriptRaw || ""),
-        status: String(source.status || ""),
+        asset_json_text: assetJsonText,
+        asset_json: parsedJson,
+        memo: String(source.memo || source.script_raw || source.scriptRaw || ""),
+        status: String(source.status || fallback.status || "draft"),
         last_error: String(source.last_error || source.lastError || "")
       };
+    }
+
+    function normalizeStep5Scripts(value, step4Assets) {
+      const source = value && typeof value === 'object' ? value : {};
+      const sourceItems = Array.isArray(source.items) ? source.items : [];
+      const activeIndex = clampAssetIndex(source.activeIndex ?? source.active_index ?? step4Assets.activeIndex);
+      const items = step4Assets.items.map((asset, index) => normalizeStep5Script(sourceItems[index], asset));
+      return { activeIndex, items };
+    }
+
+    function normalizeStep5Script(value, asset) {
+      const fallback = createDefaultStep5Script(asset);
+      const source = value && typeof value === 'object' ? value : {};
+      const scriptJsonText = String(source.script_json_text || source.scriptJsonText || "");
+      return {
+        video_id: asset.video_id,
+        script_json_text: scriptJsonText,
+        script_json: getStoredJsonValue(source.script_json ?? source.scriptJson, scriptJsonText),
+        status: String(source.status || fallback.status),
+        updated_at: String(source.updated_at || source.updatedAt || ""),
+        last_error: String(source.last_error || source.lastError || "")
+      };
+    }
+
+    function getStoredJsonValue(value, fallbackText = "") {
+      if (value && typeof value === 'object') return value;
+      const text = String(fallbackText || "").trim();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return null;
+      }
     }
 
     function normalizeCutBatch(value, options = {}) {
@@ -1295,7 +1401,8 @@
       if (!value || typeof value !== 'object') return false;
       const stateValue = ensureProductionState(value);
       if (stateValue.postingFrequency !== 3) return true;
-      if (hasStep4AssetData(stateValue.step4Asset)) return true;
+      if (hasStep4AssetsData(stateValue.step4Assets)) return true;
+      if (hasStep5ScriptsData(stateValue.step5Scripts)) return true;
       if (stateValue.characters.length > 0) return true;
       return stateValue.videos.some(video => {
         return Boolean(
@@ -1313,19 +1420,43 @@
       }) || hasCutBatchData(stateValue.cutBatch);
     }
 
+    function hasStep4AssetsData(step4Assets) {
+      return Boolean(
+        step4Assets &&
+        Array.isArray(step4Assets.items) &&
+        step4Assets.items.some((asset, index) => hasStep4AssetData(asset, index))
+      );
+    }
+
     function hasStep4AssetData(asset) {
       if (!asset || typeof asset !== 'object') return false;
-      const fallback = createDefaultStep4Asset();
+      const fallback = createDefaultStep4Asset(asset.sort_order || 1);
       return Boolean(
+        asset.image_url ||
         asset.drive_file_id ||
         asset.drive_url ||
         asset.image_uploaded_at ||
         asset.asset_json_text ||
-        asset.script_raw ||
-        asset.status ||
+        asset.asset_json ||
+        asset.memo ||
+        (asset.status && asset.status !== 'draft') ||
         asset.last_error ||
         asset.lot_id !== fallback.lot_id ||
         Number(asset.sort_order) !== fallback.sort_order
+      );
+    }
+
+    function hasStep5ScriptsData(step5Scripts) {
+      return Boolean(
+        step5Scripts &&
+        Array.isArray(step5Scripts.items) &&
+        step5Scripts.items.some(script => (
+          script.script_json_text ||
+          script.script_json ||
+          (script.status && script.status !== 'draft') ||
+          script.updated_at ||
+          script.last_error
+        ))
       );
     }
 
@@ -1620,24 +1751,79 @@
       return `lot_${getTodayToken()}_a`;
     }
 
+    function clampAssetIndex(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      return Math.min(2, Math.max(0, Math.floor(number)));
+    }
+
     function normalizeStep4SortOrder(value) {
       const number = Number(value);
       if (!Number.isFinite(number)) return 1;
-      return Math.max(1, Math.floor(number));
+      return Math.min(3, Math.max(1, Math.floor(number)));
     }
 
-    function buildStep4VideoId(lotId, sortOrder) {
+    function generateVideoId(lotId, sortOrder) {
       const safeLotId = String(lotId || buildDefaultLotId())
         .trim()
         .replace(/[^a-zA-Z0-9_-]/g, "_") || buildDefaultLotId();
       return `${safeLotId}_video_${normalizeStep4SortOrder(sortOrder)}`;
     }
 
-    function syncStep4AssetVideoId(asset = productionState.step4Asset) {
+    function buildStep4VideoId(lotId, sortOrder) {
+      return generateVideoId(lotId, sortOrder);
+    }
+
+    function getActiveAssetIndex() {
+      const index = clampAssetIndex(productionState.step4Assets?.activeIndex ?? 0);
+      productionState.step4Assets.activeIndex = index;
+      productionState.step5Scripts.activeIndex = index;
+      return index;
+    }
+
+    function getActiveStep4Asset() {
+      ensureProductionAssetCollections();
+      return productionState.step4Assets.items[getActiveAssetIndex()];
+    }
+
+    function getActiveStep5Script() {
+      ensureProductionAssetCollections();
+      return productionState.step5Scripts.items[getActiveAssetIndex()];
+    }
+
+    function ensureProductionAssetCollections() {
+      productionState.step4Assets = normalizeStep4Assets(productionState.step4Assets || null, productionState.step4Asset || null);
+      productionState.step5Scripts = normalizeStep5Scripts(productionState.step5Scripts || null, productionState.step4Assets);
+      syncStep5ScriptsWithAssets(productionState);
+      delete productionState.step4Asset;
+    }
+
+    function syncStep4AssetVideoId(asset) {
       if (!asset) return;
       asset.sort_order = normalizeStep4SortOrder(asset.sort_order);
       asset.lot_id = String(asset.lot_id || buildDefaultLotId()).trim() || buildDefaultLotId();
-      asset.video_id = buildStep4VideoId(asset.lot_id, asset.sort_order);
+      asset.video_id = generateVideoId(asset.lot_id, asset.sort_order);
+    }
+
+    function syncStep4AssetsLot(lotId) {
+      ensureProductionAssetCollections();
+      const normalizedLotId = String(lotId || buildDefaultLotId()).trim() || buildDefaultLotId();
+      productionState.step4Assets.items.forEach((asset, index) => {
+        asset.lot_id = normalizedLotId;
+        asset.sort_order = index + 1;
+        syncStep4AssetVideoId(asset);
+      });
+      syncStep5ScriptsWithAssets(productionState);
+    }
+
+    function syncStep5ScriptsWithAssets(stateValue = productionState) {
+      if (!stateValue.step4Assets || !stateValue.step5Scripts) return;
+      stateValue.step5Scripts.activeIndex = clampAssetIndex(stateValue.step4Assets.activeIndex);
+      stateValue.step5Scripts.items = stateValue.step4Assets.items.map((asset, index) => ({
+        ...createDefaultStep5Script(asset),
+        ...(stateValue.step5Scripts.items?.[index] || {}),
+        video_id: asset.video_id
+      }));
     }
 
     function createCharacter(index) {
@@ -1709,19 +1895,21 @@
     }
 
     function renderStep4Production() {
-      const asset = productionState.step4Asset;
+      const activeIndex = getActiveAssetIndex();
+      const asset = getActiveStep4Asset();
       syncStep4AssetVideoId(asset);
       const hasDriveUrl = Boolean(asset.drive_url);
       const isUploading = asset.status === "uploading";
       const isSaving = asset.status === "saving";
-      const previewUrl = productionUiState.step4PreviewUrl;
+      const previewUrl = getAssetPreviewUrl(asset, activeIndex);
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-image-square"></i> STEP4 素材保存</h2>
           <div class="production-note">STEP4 GPTsで生成した画像とJSONを保存します。画像本体はGoogle Driveに保存されます。</div>
+          ${renderAssetTabs(4)}
           <div class="production-row">
-            ${renderInput('ロットID', asset.lot_id, 'step4-asset', 'lot_id', 0)}
-            ${renderInput('ロット内順番', asset.sort_order, 'step4-asset', 'sort_order', 0, 'number')}
+            ${renderInput('ロットID', asset.lot_id, 'step4-asset', 'lot_id', activeIndex)}
+            ${renderInput('ロット内順番', asset.sort_order, 'step4-asset', 'sort_order', activeIndex, 'number', true)}
           </div>
           <div class="production-note">動画ID: ${escapeHtml(asset.video_id)}</div>
           <label class="production-label">
@@ -1740,9 +1928,9 @@
               <span class="copy-feedback" aria-live="polite"></span>
             </div>
           ` : `<div class="production-note">画像アップロード後にDrive URLが表示されます。</div>`}
-          ${renderTextarea('GPTs JSON', asset.asset_json_text, 'step4-asset', 'asset_json_text', 0)}
+          ${renderTextarea('GPTs JSON', asset.asset_json_text, 'step4-asset', 'asset_json_text', activeIndex)}
           ${asset.asset_json_text.trim() ? '' : `<div class="asset-status is-warning">JSON欄が空の場合、asset_json は null で保存されます。</div>`}
-          ${renderTextarea('メモ', asset.script_raw, 'step4-asset', 'script_raw', 0)}
+          ${renderTextarea('メモ', asset.memo, 'step4-asset', 'memo', activeIndex)}
           <div class="production-actions">
             <button class="production-btn is-primary" data-action="save-step4-asset" ${isUploading || isSaving ? 'disabled' : ''}>
               <i class="ph ph-floppy-disk"></i> 保存
@@ -1779,46 +1967,51 @@
     }
 
     function renderStep5Production() {
-      const activeIndex = productionUiState.activeVideoByStep[5];
-      const video = productionState.videos[activeIndex];
-      const selectedCharacters = productionState.characters.filter(character => character.is_selected);
+      const activeIndex = getActiveAssetIndex();
+      const asset = getActiveStep4Asset();
+      const script = getActiveStep5Script();
+      const assetJson = getAssetJson(asset);
+      const scriptSeedJson = buildStep5ScriptSeedJson(asset);
+      const previewUrl = getAssetPreviewUrl(asset, activeIndex);
       return `
         <section class="production-panel">
-          <h2 class="section-title"><i class="ph ph-film-script"></i> 台本・フレーム管理</h2>
-          ${renderVideoTabs(5)}
-          ${selectedCharacters.length === 0 ? `<div class="production-note">採用キャラが未選択です。STEP 4で採用キャラを選ぶと、ここで選択できるようになります。</div>` : ''}
+          <h2 class="section-title"><i class="ph ph-film-script"></i> STEP5 台本JSON作成・インポート</h2>
+          ${renderAssetTabs(5)}
+          ${previewUrl ? `<img class="step4-asset-preview" src="${escapeHtml(previewUrl)}" alt="選択中素材プレビュー">` : `<div class="production-note">STEP4で画像をアップロードすると、ここに選択中素材の画像が表示されます。</div>`}
+          ${asset.drive_url ? `
+            <label class="production-label">
+              Drive URL
+              <input class="production-input" type="text" value="${escapeHtml(asset.drive_url)}" readonly>
+            </label>
+            <div class="copy-actions">
+              <button class="copy-btn is-primary" data-action="copy-active-drive-url"><i class="ph ph-copy"></i> Drive URLをコピー</button>
+              <span class="copy-feedback" aria-live="polite"></span>
+            </div>
+          ` : `<div class="production-note">Drive URLはまだありません。</div>`}
+          <div class="script-info-grid">
+            ${renderScriptInfoItem('postTheme', getAssetJsonField(assetJson, 'postTheme'))}
+            ${renderScriptInfoItem('targetAudience', getAssetJsonField(assetJson, 'targetAudience'))}
+            ${renderScriptInfoItem('videoPurpose', getAssetJsonField(assetJson, 'videoPurpose'))}
+            ${['concept', 'style', 'motive', 'expression', 'background', 'imagePrompt'].map(key => {
+              const value = getAssetJsonField(assetJson, key);
+              return value ? renderScriptInfoItem(key, value) : '';
+            }).join('')}
+          </div>
           <label class="production-label">
-            採用キャラ
-            <select class="production-select" data-kind="video" data-field="linked_character_id" data-video-index="${activeIndex}">
-              <option value="">未選択</option>
-              ${selectedCharacters.map(character => `
-                <option value="${escapeHtml(character.character_id)}" ${video.linked_character_id === character.character_id ? 'selected' : ''}>
-                  ${escapeHtml(character.character_name || character.character_id)}
-                </option>
-              `).join('')}
-            </select>
+            GPTs渡し用JSON
+            <textarea class="production-textarea" readonly>${escapeHtml(scriptSeedJson)}</textarea>
           </label>
-          <div class="production-row">
-            ${renderInput('動画ID', video.video_id, 'video', 'video_id', activeIndex, 'text', true)}
-            ${renderInput('台本タイトル', video.script_title, 'video', 'script_title', activeIndex)}
-          </div>
-          ${renderTextarea('フック', video.hook, 'video', 'hook', activeIndex)}
-          ${renderTextarea('セリフ全文', video.full_dialogue, 'video', 'full_dialogue', activeIndex)}
-          ${renderTextarea('テロップ用セリフ', video.caption_dialogue, 'video', 'caption_dialogue', activeIndex)}
-          ${renderTextarea('音声用セリフ', video.voice_dialogue, 'video', 'voice_dialogue', activeIndex)}
-          ${renderTextarea('シーン描写英語', video.scene_description_en, 'video', 'scene_description_en', activeIndex)}
-          ${renderTextarea('映像用統合プロンプト', video.visual_prompt, 'video', 'visual_prompt', activeIndex)}
-          ${renderTextarea('メモ', video.memo, 'video', 'memo', activeIndex)}
           <div class="copy-actions">
-            ${renderCopyButton('映像生成用コピー', 'videoPrompt', activeIndex)}
-            ${renderCopyButton('セリフコピー', 'fullDialogue', activeIndex)}
-            ${renderCopyButton('テロップコピー', 'captionDialogue', activeIndex)}
-            ${renderCopyButton('音声コピー', 'voiceDialogue', activeIndex)}
+            <button class="copy-btn is-primary" data-action="copy-step5-script-seed"><i class="ph ph-copy"></i> GPTs渡し用JSONをコピー</button>
+            <span class="copy-feedback" aria-live="polite"></span>
           </div>
+          ${renderTextarea('台本JSONインポート', script.script_json_text, 'step5-script', 'script_json_text', activeIndex)}
           <div class="production-actions">
-            <button class="production-btn" data-action="add-scene" data-video-index="${activeIndex}"><i class="ph ph-plus"></i> シーンを追加</button>
+            <button class="production-btn is-primary" data-action="save-step5-script"><i class="ph ph-floppy-disk"></i> 台本JSONを保存</button>
+            <span class="asset-status ${script.status === 'saved' ? 'is-success' : ''}" aria-live="polite">${script.status === 'saved' ? '台本JSON保存済み' : ''}</span>
           </div>
-          ${video.scenes.map((scene, sceneIndex) => renderStep5Scene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">シーンはまだありません。</div>`}
+          ${script.updated_at ? `<div class="production-note">更新日時: ${escapeHtml(script.updated_at)}</div>` : ''}
+          ${script.last_error ? `<div class="asset-status is-error">${escapeHtml(script.last_error)}</div>` : ''}
         </section>
       `;
     }
@@ -2093,6 +2286,55 @@
       `;
     }
 
+    function renderAssetTabs(stepId) {
+      ensureProductionAssetCollections();
+      const activeIndex = getActiveAssetIndex();
+      return `
+        <div class="production-tabs">
+          ${productionState.step4Assets.items.map((asset, index) => {
+            const script = productionState.step5Scripts.items[index];
+            const hasData = hasStep4AssetContent(asset) || (stepId === 5 && hasStep5ScriptContent(script));
+            return `
+              <button class="production-tab ${activeIndex === index ? 'is-active' : ''}" data-action="select-asset" data-step-id="${stepId}" data-asset-index="${index}">
+                素材${index + 1}<span class="asset-indicator">${hasData ? '●' : '○'}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function hasStep4AssetContent(asset) {
+      return Boolean(
+        asset?.image_url ||
+        asset?.drive_file_id ||
+        asset?.drive_url ||
+        asset?.asset_json_text ||
+        asset?.asset_json ||
+        asset?.memo ||
+        (asset?.status && asset.status !== 'draft')
+      );
+    }
+
+    function hasStep5ScriptContent(script) {
+      return Boolean(script?.script_json_text || script?.script_json || script?.updated_at);
+    }
+
+    function renderScriptInfoItem(label, value) {
+      return `
+        <div class="script-info-item">
+          <strong>${escapeHtml(label)}</strong>
+          <span>${escapeHtml(formatDisplayValue(value) || '未入力')}</span>
+        </div>
+      `;
+    }
+
+    function formatDisplayValue(value) {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    }
+
     function renderInput(label, value, kind, field, index, type = 'text', isReadonly = false, sceneIndex = null) {
       return `
         <label class="production-label">
@@ -2116,6 +2358,52 @@
         <button class="copy-btn ${isPrimary ? 'is-primary' : ''}" data-action="copy" data-copy-type="${type}" data-video-index="${videoIndex}" ${sceneIndex !== null ? `data-scene-index="${sceneIndex}"` : ''}>${label}</button>
         <span class="copy-feedback" aria-live="polite"></span>
       `;
+    }
+
+    function getAssetPreviewUrl(asset, index) {
+      const localPreviewUrl = productionUiState.step4PreviewUrls[index] || "";
+      if (localPreviewUrl) return localPreviewUrl;
+      if (asset?.image_url && !String(asset.image_url).startsWith('blob:')) return asset.image_url;
+      const driveFileId = asset?.drive_file_id || extractDriveFileId(asset?.drive_url || "");
+      return driveFileId ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveFileId)}&sz=w1200` : "";
+    }
+
+    function getAssetJson(asset) {
+      if (asset?.asset_json && typeof asset.asset_json === 'object') return asset.asset_json;
+      const text = String(asset?.asset_json_text || "").trim();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getAssetJsonField(assetJson, key) {
+      if (!assetJson || typeof assetJson !== 'object') return "";
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      return assetJson[key] ?? assetJson[snakeKey] ?? "";
+    }
+
+    function buildStep5ScriptSeedJson(asset) {
+      const assetJson = getAssetJson(asset);
+      const payload = {
+        postTheme: getAssetJsonField(assetJson, 'postTheme') || "",
+        targetAudience: getAssetJsonField(assetJson, 'targetAudience') || "",
+        videoPurpose: getAssetJsonField(assetJson, 'videoPurpose') || ""
+      };
+
+      ['concept', 'style', 'motive', 'expression', 'background', 'imagePrompt'].forEach(key => {
+        const value = getAssetJsonField(assetJson, key);
+        if (value !== "" && value !== null && value !== undefined) payload[key] = value;
+      });
+
+      if (asset?.drive_url) payload.drive_url = asset.drive_url;
+      payload.video_id = asset?.video_id || "";
+      payload.lot_id = asset?.lot_id || "";
+      payload.sort_order = asset?.sort_order || 1;
+
+      return JSON.stringify(payload, null, 2);
     }
 
     function getStep4AssetStatusClass(asset) {
@@ -2187,8 +2475,8 @@
     }
 
     async function uploadStep4AssetImage(file) {
-      const asset = productionState.step4Asset || createDefaultStep4Asset();
-      productionState.step4Asset = asset;
+      const activeIndex = getActiveAssetIndex();
+      const asset = getActiveStep4Asset();
       syncStep4AssetVideoId(asset);
 
       asset.status = 'uploading';
@@ -2198,8 +2486,9 @@
 
       try {
         validateStep4ImageFile(file);
-        if (productionUiState.step4PreviewUrl) URL.revokeObjectURL(productionUiState.step4PreviewUrl);
-        productionUiState.step4PreviewUrl = URL.createObjectURL(file);
+        if (productionUiState.step4PreviewUrls[activeIndex]) URL.revokeObjectURL(productionUiState.step4PreviewUrls[activeIndex]);
+        productionUiState.step4PreviewUrls[activeIndex] = URL.createObjectURL(file);
+        asset.image_url = productionUiState.step4PreviewUrls[activeIndex];
         renderProductionWorkspace(getCurrentStepId());
 
         const imageBase64 = await readFileAsBase64(file);
@@ -2276,8 +2565,7 @@
     }
 
     async function saveStep4AssetToSupabase() {
-      const asset = productionState.step4Asset || createDefaultStep4Asset();
-      productionState.step4Asset = asset;
+      const asset = getActiveStep4Asset();
       syncStep4AssetVideoId(asset);
 
       if (!asset.drive_file_id && !asset.drive_url) {
@@ -2300,7 +2588,9 @@
           renderProductionWorkspace(getCurrentStepId());
           return;
         }
+        asset.asset_json = assetJson;
       } else {
+        asset.asset_json = null;
         alert('JSON欄が空のため、asset_json は null で保存します。');
       }
 
@@ -2327,7 +2617,7 @@
         drive_url: asset.drive_url || null,
         image_uploaded_at: asset.image_uploaded_at || new Date().toISOString(),
         asset_json: assetJson,
-        script_raw: asset.script_raw || null,
+        script_raw: asset.memo || null,
         shot_count: getShotCount(assetJson),
         status: 'asset_uploaded'
       };
@@ -2372,8 +2662,7 @@
           uploadStep4AssetImage(file);
           return;
         }
-        const asset = productionState.step4Asset || createDefaultStep4Asset();
-        productionState.step4Asset = asset;
+        const asset = getActiveStep4Asset();
         asset.status = 'upload_failed';
         asset.last_error = '画像ファイルを取得できませんでした。もう一度選択してください。';
         saveProductionState();
@@ -2405,7 +2694,19 @@
         saveStep4AssetToSupabase();
       }
       if (action === 'copy-step4-drive-url') {
-        copyText(productionState.step4Asset?.drive_url || '', button.nextElementSibling);
+        copyText(getActiveStep4Asset()?.drive_url || '', button.nextElementSibling);
+      }
+      if (action === 'select-asset') {
+        selectProductionAsset(Number(button.dataset.assetIndex));
+      }
+      if (action === 'copy-active-drive-url') {
+        copyText(getActiveStep4Asset()?.drive_url || '', button.nextElementSibling);
+      }
+      if (action === 'copy-step5-script-seed') {
+        copyText(buildStep5ScriptSeedJson(getActiveStep4Asset()), button.nextElementSibling);
+      }
+      if (action === 'save-step5-script') {
+        saveStep5Script();
       }
       if (action === 'add-character') {
         productionState.characters.push(createCharacter(productionState.characters.length));
@@ -2469,14 +2770,29 @@
         if (character) character[field] = value;
       }
       if (kind === 'step4-asset') {
-        const asset = productionState.step4Asset || createDefaultStep4Asset();
-        productionState.step4Asset = asset;
+        const asset = getActiveStep4Asset();
         if (field === 'sort_order') {
           asset[field] = normalizeStep4SortOrder(value);
         } else {
           asset[field] = String(value || '');
         }
-        if (field === 'lot_id' || field === 'sort_order') syncStep4AssetVideoId(asset);
+        if (field === 'asset_json_text') asset.asset_json = getStoredJsonValue(null, asset.asset_json_text);
+        if (field === 'lot_id') {
+          syncStep4AssetsLot(asset.lot_id);
+        } else if (field === 'sort_order') {
+          syncStep4AssetVideoId(asset);
+          syncStep5ScriptsWithAssets(productionState);
+        }
+      }
+      if (kind === 'step5-script') {
+        const script = getActiveStep5Script();
+        script[field] = String(value || '');
+        script.status = 'draft';
+        script.last_error = '';
+        if (field === 'script_json_text' && !script[field].trim()) {
+          script.script_json = null;
+          script.updated_at = '';
+        }
       }
       if (kind === 'video') {
         const video = productionState.videos[Number(target.dataset.videoIndex)];
@@ -2500,6 +2816,41 @@
 
     function getCurrentStepId() {
       return state.targetSteps[state.currentIndex]?.id;
+    }
+
+    function selectProductionAsset(index) {
+      ensureProductionAssetCollections();
+      const activeIndex = clampAssetIndex(index);
+      productionState.step4Assets.activeIndex = activeIndex;
+      productionState.step5Scripts.activeIndex = activeIndex;
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
+    }
+
+    function saveStep5Script() {
+      const script = getActiveStep5Script();
+      const text = String(script.script_json_text || '').trim();
+      if (!text) {
+        script.status = 'save_failed';
+        script.last_error = '台本JSONを貼り付けてください。';
+        saveProductionState();
+        renderProductionWorkspace(getCurrentStepId());
+        return;
+      }
+
+      try {
+        script.script_json = JSON.parse(text);
+        script.script_json_text = text;
+        script.status = 'saved';
+        script.updated_at = new Date().toISOString();
+        script.last_error = '';
+      } catch (e) {
+        script.status = 'save_failed';
+        script.last_error = `JSONの構文エラー: ${e.message}`;
+      }
+
+      saveProductionState();
+      renderProductionWorkspace(getCurrentStepId());
     }
 
     function importCutBatchFromInput() {
