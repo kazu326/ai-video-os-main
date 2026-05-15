@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_tool_links_project_step_media
 CREATE INDEX IF NOT EXISTS idx_tool_links_updated_at
   ON tool_links (updated_at DESC);
 
--- production_states table for shared aiVideoOsProductionState.
+-- production_states table for scoped aiVideoOsProductionState.
 -- Do not store production state in projects.data JSONB.
 CREATE TABLE IF NOT EXISTS production_states (
   project_key text PRIMARY KEY DEFAULT 'default',
@@ -76,6 +76,10 @@ CREATE TRIGGER trg_production_states_updated_at
 CREATE TABLE IF NOT EXISTS video_assets (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_title     text NOT NULL,
+  organization_id   text,
+  project_id        text,
+  worker_id         text,
+  project_key       text,
   video_id          text NOT NULL,
   lot_id            text,
   sort_order        integer,
@@ -87,9 +91,14 @@ CREATE TABLE IF NOT EXISTS video_assets (
   shot_count        integer,
   status            text NOT NULL DEFAULT 'draft',
   created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (project_title, video_id)
+  updated_at        timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE video_assets ADD COLUMN IF NOT EXISTS organization_id text;
+ALTER TABLE video_assets ADD COLUMN IF NOT EXISTS project_id text;
+ALTER TABLE video_assets ADD COLUMN IF NOT EXISTS worker_id text;
+ALTER TABLE video_assets ADD COLUMN IF NOT EXISTS project_key text;
+ALTER TABLE video_assets DROP CONSTRAINT IF EXISTS video_assets_project_title_video_id_key;
 
 DROP TRIGGER IF EXISTS trg_video_assets_updated_at ON video_assets;
 CREATE TRIGGER trg_video_assets_updated_at
@@ -98,6 +107,9 @@ CREATE TRIGGER trg_video_assets_updated_at
 
 CREATE INDEX IF NOT EXISTS idx_video_assets_project_lot_order
   ON video_assets (project_title, lot_id, sort_order);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_video_assets_project_key_video_id_unique
+  ON video_assets (project_key, video_id);
 
 CREATE INDEX IF NOT EXISTS idx_video_assets_updated_at
   ON video_assets (updated_at DESC);

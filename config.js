@@ -43,6 +43,64 @@ const LEVELS = {
   }
 };
 
+// ============================================================
+// Production Registry — MVP static master data
+// ============================================================
+// MVPでは登録・編集UIを作らず、この静的配列を正とする。
+// 将来構想:
+// - admin.html で organization / project / worker を登録・編集
+// - Supabaseの organizations / projects / workers テーブルから取得
+// - 管理者のみ編集可能
+const ORGANIZATIONS = [
+  { id: "org_default", name: "Default Organization" }
+];
+
+const PROJECTS = [
+  { id: "proj_display_cleanup", name: "DisplayCleanup", organization_id: "org_default" }
+];
+
+const WORKERS = [
+  { id: "worker_codex", name: "Codex", organization_id: "org_default" }
+];
+
+function getOrganizations() {
+  return [...ORGANIZATIONS];
+}
+
+function getProjectsByOrganizationId(organizationId) {
+  return PROJECTS.filter(project => project.organization_id === organizationId);
+}
+
+function getWorkersByOrganizationId(organizationId) {
+  return WORKERS.filter(worker => worker.organization_id === organizationId);
+}
+
+function resolveProductionContext(organizationId, projectId, workerId) {
+  const organization = ORGANIZATIONS.find(item => item.id === organizationId);
+  if (!organization) return null;
+
+  const project = PROJECTS.find(item => (
+    item.id === projectId &&
+    item.organization_id === organization.id
+  ));
+  if (!project) return null;
+
+  const worker = WORKERS.find(item => (
+    item.id === workerId &&
+    item.organization_id === organization.id
+  ));
+  if (!worker) return null;
+
+  return {
+    organization_id: organization.id,
+    organization_name: organization.name,
+    project_id: project.id,
+    project_name: project.name,
+    worker_id: worker.id,
+    worker_name: worker.name
+  };
+}
+
 const STEPS = [
   { id: 1,  title: "ジャンル選定",          description: "市場調査・ニーズ分析・競合リサーチを行い、参入ジャンルを決定する。",                              estimatedMinutes: 60, allowedLevels: ["mid","pro"],                  hasBrandCheck: false, skipReason: "ジャンルが既に決定済みの場合はスキップ可" },
   { id: 2,  title: "アカウント設計",         description: "差別化ポイントの整理、全体的なコンセプト・世界観を構築する。",                                   estimatedMinutes: 45, allowedLevels: ["mid","pro"],                  hasBrandCheck: false, skipReason: "アカウント設計が完了している場合はスキップ可" },

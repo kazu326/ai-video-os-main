@@ -116,6 +116,10 @@
       align-items: center;
       gap: var(--space-1);
     }
+    .form-hint {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
     .text-input, .select-input {
       width: 100%;
       background-color: var(--color-surface-2);
@@ -266,13 +270,19 @@
 
     <div class="form-section">
       <div class="form-group">
-        <label class="form-label"><i class="ph ph-user"></i> 作業者名</label>
-        <input type="text" id="input-user" class="text-input" placeholder="例: Aさん" required>
+        <label class="form-label"><i class="ph ph-buildings"></i> 組織</label>
+        <select id="select-organization" class="select-input"></select>
       </div>
 
       <div class="form-group">
         <label class="form-label"><i class="ph ph-folder"></i> プロジェクト名</label>
-        <input type="text" id="input-project" class="text-input" placeholder="例: instagram運用" required>
+        <select id="select-project" class="select-input"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph ph-user"></i> 作業者名</label>
+        <select id="select-worker" class="select-input"></select>
+        <div class="form-hint">登録内容の変更は config.js を編集してください</div>
       </div>
 
       <div class="form-group">
@@ -321,8 +331,9 @@
     // DOM Elements
     // ============================================================
     const els = {
-      inputUser: document.getElementById('input-user'),
-      inputProject: document.getElementById('input-project'),
+      selectOrganization: document.getElementById('select-organization'),
+      selectProject: document.getElementById('select-project'),
+      selectWorker: document.getElementById('select-worker'),
       selectMedia: document.getElementById('select-media'),
       selectLevel: document.getElementById('select-level'),
       selectStepStart: document.getElementById('select-step-start'),
@@ -339,6 +350,8 @@
     // Render Functions (DOM Manipulation)
     // ============================================================
     function renderOptions() {
+      renderProductionContextOptions();
+
       // 媒体
       els.selectMedia.innerHTML = Object.entries(MEDIA_TYPES).map(([key, data]) => 
         `<option value="${key}">${data.label}</option>`
@@ -360,6 +373,37 @@
       if (STEPS.length > 0) {
         els.selectStepEnd.value = STEPS[STEPS.length - 1].id;
       }
+    }
+
+    function renderProductionContextOptions() {
+      const organizations = typeof getOrganizations === 'function' ? getOrganizations() : [];
+      els.selectOrganization.innerHTML = [
+        '<option value="">組織を選択</option>',
+        ...organizations.map(organization => `<option value="${organization.id}">${organization.name}</option>`)
+      ].join('');
+
+      if (organizations.length > 0) {
+        els.selectOrganization.value = organizations[0].id;
+      }
+      renderScopedContextOptions();
+    }
+
+    function renderScopedContextOptions() {
+      const organizationId = els.selectOrganization.value;
+      const projects = typeof getProjectsByOrganizationId === 'function' ? getProjectsByOrganizationId(organizationId) : [];
+      const workers = typeof getWorkersByOrganizationId === 'function' ? getWorkersByOrganizationId(organizationId) : [];
+
+      els.selectProject.innerHTML = [
+        '<option value="">プロジェクトを選択</option>',
+        ...projects.map(project => `<option value="${project.id}">${project.name}</option>`)
+      ].join('');
+      els.selectWorker.innerHTML = [
+        '<option value="">作業者を選択</option>',
+        ...workers.map(worker => `<option value="${worker.id}">${worker.name}</option>`)
+      ].join('');
+
+      if (projects.length > 0) els.selectProject.value = projects[0].id;
+      if (workers.length > 0) els.selectWorker.value = workers[0].id;
     }
 
     function showResult(url) {
@@ -385,19 +429,19 @@
     // Logic Functions
     // ============================================================
     function generateUrl() {
-      const user = els.inputUser.value.trim();
-      const project = els.inputProject.value.trim();
+      const organizationId = els.selectOrganization.value;
+      const projectId = els.selectProject.value;
+      const workerId = els.selectWorker.value;
+      const productionContext = typeof resolveProductionContext === 'function'
+        ? resolveProductionContext(organizationId, projectId, workerId)
+        : null;
       const media = els.selectMedia.value;
       const level = els.selectLevel.value;
       const startId = parseInt(els.selectStepStart.value, 10);
       const endId = parseInt(els.selectStepEnd.value, 10);
 
-      if (!user) {
-        alert("作業者名を入力してください");
-        return null;
-      }
-      if (!project) {
-        alert("プロジェクト名を入力してください");
+      if (!productionContext) {
+        alert("組織・プロジェクト・作業者を選択してください");
         return null;
       }
       if (startId > endId) {
@@ -406,8 +450,11 @@
       }
 
       const params = new URLSearchParams({
-        user,
-        project,
+        organization_id: productionContext.organization_id,
+        project_id: productionContext.project_id,
+        worker_id: productionContext.worker_id,
+        user: productionContext.worker_name,
+        project: productionContext.project_name,
         media,
         level,
         steps: `${startId}-${endId}`
@@ -495,6 +542,7 @@
       
       els.generateBtn.addEventListener('click', onGenerateClick);
       els.copyBtn.addEventListener('click', onCopyClick);
+      els.selectOrganization.addEventListener('change', renderScopedContextOptions);
       els.selectStepStart.addEventListener('change', onStepStartChange);
     }
 

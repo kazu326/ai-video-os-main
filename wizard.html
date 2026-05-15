@@ -447,6 +447,25 @@
     .script-info-item span {
       overflow-wrap: anywhere;
     }
+    .management-details {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3);
+    }
+    .management-details summary {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .management-details summary .production-note {
+      display: inline;
+      font-weight: normal;
+      margin-left: var(--space-2);
+    }
+    .management-details-body {
+      display: grid;
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+    }
     @media (min-width: 700px) {
       .production-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -665,7 +684,8 @@
   </div>
 
   <script>
-    const PRODUCTION_STORAGE_KEY = "aiVideoOsProductionState";
+    const LEGACY_PRODUCTION_STORAGE_KEY = "aiVideoOsProductionState";
+    const PRODUCTION_STORAGE_KEY_PREFIX = "aiVideoOsProductionState";
     const SUPABASE_URL = "https://adbitwieufbfczrfvkql.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_i9da9o6E7A9cN4uWS7gjHg_VUzSHPsT";
     const BRAND_SETTINGS_TABLE = "brand_settings";
@@ -673,7 +693,6 @@
     const TOOL_LINKS_TABLE = "tool_links";
     const TOOL_LINKS_PROJECT_KEY = "default";
     const PRODUCTION_STATES_TABLE = "production_states";
-    const PRODUCTION_STATE_PROJECT_KEY = "default";
     const VIDEO_ASSETS_TABLE = "video_assets";
     const GAS_IMAGE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxzFz23boOShS5xUacvepaGFyJe8Cve9ARu8Wl21bkpmY3DNCLKntT62a8Ifv60Eak8/exec";
 
@@ -688,6 +707,14 @@
     const state = {
       user: '',
       project: '',
+      organizationId: '',
+      organizationName: '',
+      projectId: '',
+      projectName: '',
+      workerId: '',
+      workerName: '',
+      productionProjectKey: '',
+      isProductionContextResolved: false,
       media: '',
       level: '',
       targetSteps: [],     // 実行対象のSTEP情報配列
@@ -699,6 +726,12 @@
         startTime: Date.now(),
         user: '',
         project: '',
+        organization_id: '',
+        organization_name: '',
+        project_id: '',
+        project_name: '',
+        worker_id: '',
+        worker_name: '',
         media: '',
         level: '',
         steps: [],         // 各STEPのログ
@@ -755,14 +788,24 @@
       
       // Parse URL parameters
       const params = new URLSearchParams(window.location.search);
-      state.user = params.get('user') || 'Unknown User';
-      state.project = params.get('project') || 'Unknown Project';
+      const productionContext = resolveProductionContextFromParams(params);
+      if (!productionContext) {
+        stopWizardForInvalidProductionContext();
+        return;
+      }
+      applyProductionContext(productionContext);
       state.media = params.get('media') || 'all';
       state.level = params.get('level') || 'all';
       
       // Setup session log meta
       state.sessionLog.user = state.user;
       state.sessionLog.project = state.project;
+      state.sessionLog.organization_id = state.organizationId;
+      state.sessionLog.organization_name = state.organizationName;
+      state.sessionLog.project_id = state.projectId;
+      state.sessionLog.project_name = state.projectName;
+      state.sessionLog.worker_id = state.workerId;
+      state.sessionLog.worker_name = state.workerName;
       state.sessionLog.media = state.media;
       state.sessionLog.level = state.level;
 
@@ -809,6 +852,41 @@
       hydrateProductionStateFromSupabase();
       hydrateBrandSettingsFromSupabase();
       hydrateToolLinksFromSupabase();
+    }
+
+    function resolveProductionContextFromParams(params) {
+      if (typeof resolveProductionContext !== 'function') return null;
+      return resolveProductionContext(
+        params.get('organization_id') || '',
+        params.get('project_id') || '',
+        params.get('worker_id') || ''
+      );
+    }
+
+    function applyProductionContext(context) {
+      state.organizationId = context.organization_id;
+      state.organizationName = context.organization_name;
+      state.projectId = context.project_id;
+      state.projectName = context.project_name;
+      state.workerId = context.worker_id;
+      state.workerName = context.worker_name;
+      state.productionProjectKey = getProductionStateProjectKeyFromContext(context);
+      state.isProductionContextResolved = true;
+      state.user = context.worker_name;
+      state.project = context.project_name;
+    }
+
+    function stopWizardForInvalidProductionContext() {
+      state.isProductionContextResolved = false;
+      console.error("[wizard] production context resolution failed.");
+      alert("組織・プロジェクト・作業者IDを確認できないため、wizardを開始できません。start.htmlから登録済みIDを選択して開始してください。");
+      els.displayProject.textContent = "ID未解決";
+      els.displayUser.textContent = "開始不可";
+      els.displayLevel.textContent = "-";
+      els.toolsContainer.innerHTML = `<div class="empty-tools">start.htmlから登録済みの組織・プロジェクト・作業者を選択して開始してください。</div>`;
+      els.productionWorkspace.classList.remove('is-visible');
+      els.productionWorkspace.innerHTML = '';
+      els.btnNext.disabled = true;
     }
 
     // ============================================================
@@ -1086,6 +1164,12 @@
     function createDefaultProductionState() {
       const step4Assets = createDefaultStep4Assets();
       return {
+        organization_id: state.organizationId || "",
+        organization_name: state.organizationName || "",
+        project_id: state.projectId || "",
+        project_name: state.projectName || "",
+        worker_id: state.workerId || "",
+        worker_name: state.workerName || "",
         postingFrequency: 3,
         step4Assets,
         step5Scripts: createDefaultStep5Scripts(step4Assets),
@@ -1133,6 +1217,7 @@
         video_id: asset.video_id,
         script_json_text: "",
         script_json: null,
+        is_script_valid: false,
         status: "draft",
         updated_at: "",
         last_error: ""
@@ -1202,8 +1287,10 @@
     }
 
     function loadProductionState() {
+      if (!state.isProductionContextResolved) return createDefaultProductionState();
+      migrateLegacyProductionStateIfNeeded();
       try {
-        const raw = localStorage.getItem(PRODUCTION_STORAGE_KEY);
+        const raw = localStorage.getItem(getProductionStorageKey());
         const parsed = raw ? JSON.parse(raw) : {};
         return ensureProductionState(parsed);
       } catch (e) {
@@ -1213,8 +1300,9 @@
     }
 
     function saveProductionState(options = {}) {
+      if (!state.isProductionContextResolved) return;
       const { sync = true, markDirty = true } = options;
-      localStorage.setItem(PRODUCTION_STORAGE_KEY, JSON.stringify(productionState));
+      localStorage.setItem(getProductionStorageKey(), JSON.stringify(productionState));
       if (markDirty) productionStateDirty = true;
       if (sync) scheduleProductionStateSave();
     }
@@ -1222,6 +1310,12 @@
     function ensureProductionState(value) {
       const next = createDefaultProductionState();
       if (value && typeof value === 'object') {
+        next.organization_id = state.organizationId;
+        next.organization_name = state.organizationName;
+        next.project_id = state.projectId;
+        next.project_name = state.projectName;
+        next.worker_id = state.workerId;
+        next.worker_name = state.workerName;
         next.postingFrequency = clampPostingFrequency(value.postingFrequency || next.postingFrequency);
         next.step4Assets = normalizeStep4Assets(value.step4Assets || value.step4_assets || null, value.step4Asset || value.step4_asset || null);
         next.step5Scripts = normalizeStep5Scripts(value.step5Scripts || value.step5_scripts || null, next.step4Assets);
@@ -1243,6 +1337,44 @@
       }
       syncStep5ScriptsWithAssets(next);
       return next;
+    }
+
+    function getProductionStateProjectKeyFromContext(context) {
+      return `production:${context.organization_id}:${context.project_id}:${context.worker_id}`;
+    }
+
+    function getProductionStateProjectKey() {
+      return state.isProductionContextResolved ? state.productionProjectKey : "";
+    }
+
+    function getProductionStorageKey() {
+      const projectKey = getProductionStateProjectKey();
+      return projectKey ? `${PRODUCTION_STORAGE_KEY_PREFIX}:${projectKey}` : "";
+    }
+
+    function migrateLegacyProductionStateIfNeeded() {
+      if (!state.isProductionContextResolved) return;
+      const storageKey = getProductionStorageKey();
+      if (!storageKey) return;
+      if (localStorage.getItem(storageKey)) return;
+      const legacyRaw = localStorage.getItem(LEGACY_PRODUCTION_STORAGE_KEY);
+      if (!legacyRaw) return;
+      try {
+        const legacyState = JSON.parse(legacyRaw);
+        if (
+          legacyState?.organization_id !== state.organizationId ||
+          legacyState?.project_id !== state.projectId ||
+          legacyState?.worker_id !== state.workerId
+        ) {
+          console.warn("[wizard] skipped legacy production state migration because scoped IDs do not match.");
+          return;
+        }
+      } catch (e) {
+        console.warn("[wizard] skipped legacy production state migration because legacy data is invalid.");
+        return;
+      }
+      localStorage.setItem(storageKey, legacyRaw);
+      console.log("[wizard] migrated legacy production state to scoped key:", storageKey);
     }
 
     function normalizeStep4Assets(value, legacyAsset = null) {
@@ -1302,6 +1434,7 @@
         video_id: asset.video_id,
         script_json_text: scriptJsonText,
         script_json: parsedScriptJson,
+        is_script_valid: source.is_script_valid === true && Boolean(parsedScriptJson),
         status: parsedScriptJson ? String(source.status || fallback.status) : fallback.status,
         updated_at: parsedScriptJson ? String(source.updated_at || source.updatedAt || "") : "",
         last_error: String(source.last_error || source.lastError || "")
@@ -1498,13 +1631,16 @@
     }
 
     async function loadProductionStateFromSupabase() {
+      if (!state.isProductionContextResolved) return null;
       const client = getProductionStateSupabaseClient();
       if (!client) return null;
+      const projectKey = getProductionStateProjectKey();
+      if (!projectKey) return null;
 
       const { data, error } = await client
         .from(PRODUCTION_STATES_TABLE)
         .select('data, updated_at')
-        .eq('project_key', PRODUCTION_STATE_PROJECT_KEY)
+        .eq('project_key', projectKey)
         .maybeSingle();
 
       if (error) throw error;
@@ -1516,8 +1652,11 @@
     }
 
     async function saveProductionStateToSupabase() {
+      if (!state.isProductionContextResolved) return;
       const client = getProductionStateSupabaseClient();
       if (!client) throw new Error("Supabase is not configured.");
+      const projectKey = getProductionStateProjectKey();
+      if (!projectKey) return;
       if (!hasProductionStateData(productionState)) {
         productionStateSyncPending = false;
         return;
@@ -1527,7 +1666,7 @@
       const { error } = await client
         .from(PRODUCTION_STATES_TABLE)
         .upsert({
-          project_key: PRODUCTION_STATE_PROJECT_KEY,
+          project_key: projectKey,
           data: ensureProductionState(productionState),
           updated_at: updatedAt
         }, { onConflict: 'project_key' });
@@ -1538,6 +1677,7 @@
     }
 
     function scheduleProductionStateSave() {
+      if (!state.isProductionContextResolved) return;
       productionStateSyncPending = true;
       clearTimeout(productionStateSaveTimer);
       productionStateSaveTimer = setTimeout(() => {
@@ -1912,17 +2052,11 @@
           <h2 class="section-title"><i class="ph ph-image-square"></i> STEP4 素材保存</h2>
           <div class="production-note">STEP4 GPTsで生成した画像とJSONを保存します。画像本体はGoogle Driveに保存されます。</div>
           ${renderAssetTabs(4)}
-          <div class="production-row">
-            ${renderInput('ロットID', asset.lot_id, 'step4-asset', 'lot_id', activeIndex)}
-            ${renderInput('ロット内順番', asset.sort_order, 'step4-asset', 'sort_order', activeIndex, 'number', true)}
-          </div>
-          <div class="production-note">動画ID: ${escapeHtml(asset.video_id)}</div>
           <label class="production-label">
             画像アップロード
             <input class="production-input" type="file" accept="image/*" data-step4-asset-file>
           </label>
           ${previewUrl ? `<img class="step4-asset-preview" src="${escapeHtml(previewUrl)}" alt="STEP4素材プレビュー">` : ''}
-          ${asset.drive_file_id ? `<div class="readonly-block">drive_file_id: ${escapeHtml(asset.drive_file_id)}</div>` : ''}
           ${hasDriveUrl ? `
             <label class="production-label">
               Drive URL
@@ -1934,15 +2068,23 @@
             </div>
           ` : `<div class="production-note">画像アップロード後にDrive URLが表示されます。</div>`}
           ${renderTextarea('GPTs JSON', asset.asset_json_text, 'step4-asset', 'asset_json_text', activeIndex)}
-          ${asset.asset_json_text.trim() ? '' : `<div class="asset-status is-warning">JSON欄が空の場合、asset_json は null で保存されます。</div>`}
           ${renderTextarea('メモ', asset.memo, 'step4-asset', 'memo', activeIndex)}
           <div class="production-actions">
             <button class="production-btn is-primary" data-action="save-step4-asset" ${isUploading || isSaving ? 'disabled' : ''}>
               <i class="ph ph-floppy-disk"></i> 保存
             </button>
-            <span class="asset-status ${getStep4AssetStatusClass(asset)}" aria-live="polite">${escapeHtml(getStep4AssetStatusText(asset))}</span>
           </div>
-          ${asset.last_error ? `<div class="asset-status is-error">${escapeHtml(asset.last_error)}</div>` : ''}
+          ${renderManagementDetails(`
+            <div class="production-row">
+              ${renderInput('ロットID', asset.lot_id, 'step4-asset', 'lot_id', activeIndex)}
+              ${renderInput('ロット内順番', asset.sort_order, 'step4-asset', 'sort_order', activeIndex, 'number', true)}
+            </div>
+            <div class="readonly-block">video_id: ${escapeHtml(asset.video_id)}</div>
+            ${asset.drive_file_id ? `<div class="readonly-block">drive_file_id: ${escapeHtml(asset.drive_file_id)}</div>` : ''}
+            ${asset.asset_json_text.trim() ? '' : `<div class="asset-status is-warning">JSON欄が空の場合、asset_json は null で保存されます。</div>`}
+            <div class="asset-status ${getStep4AssetStatusClass(asset)}" aria-live="polite">保存ステータス: ${escapeHtml(getStep4AssetStatusText(asset) || asset.status || 'draft')}</div>
+            ${asset.last_error ? `<div class="asset-status is-error">エラー詳細: ${escapeHtml(asset.last_error)}</div>` : ''}
+          `)}
         </section>
       `;
     }
@@ -1993,15 +2135,6 @@
               <span class="copy-feedback" aria-live="polite"></span>
             </div>
           ` : `<div class="production-note">Drive URLはまだありません。</div>`}
-          <div class="script-info-grid">
-            ${renderScriptInfoItem('postTheme', getAssetJsonField(assetJson, 'postTheme'))}
-            ${renderScriptInfoItem('targetAudience', getAssetJsonField(assetJson, 'targetAudience'))}
-            ${renderScriptInfoItem('videoPurpose', getAssetJsonField(assetJson, 'videoPurpose'))}
-            ${['concept', 'style', 'motive', 'expression', 'background', 'imagePrompt'].map(key => {
-              const value = getAssetJsonField(assetJson, key);
-              return value ? renderScriptInfoItem(key, value) : '';
-            }).join('')}
-          </div>
           <label class="production-label">
             GPTs渡し用JSON
             <textarea class="production-textarea" readonly>${escapeHtml(scriptSeedJson)}</textarea>
@@ -2013,10 +2146,26 @@
           ${renderTextarea('台本JSONインポート', getStep5ScriptInputValue(activeIndex, script), 'step5-script', 'script_json_text', activeIndex)}
           <div class="production-actions">
             <button class="production-btn is-primary" data-action="save-step5-script"><i class="ph ph-floppy-disk"></i> 台本JSONを保存</button>
-            <span class="asset-status ${script.status === 'saved' && !script.last_error ? 'is-success' : ''}" aria-live="polite">${script.status === 'saved' && !script.last_error ? '台本JSON保存済み' : ''}</span>
           </div>
-          ${script.updated_at ? `<div class="production-note">更新日時: ${escapeHtml(script.updated_at)}</div>` : ''}
-          ${script.last_error ? `<div class="asset-status is-error">${escapeHtml(script.last_error)}</div>` : ''}
+          ${renderManagementDetails(`
+            <div class="production-row">
+              <div class="readonly-block">video_id: ${escapeHtml(asset.video_id)}</div>
+              <div class="readonly-block">lot_id: ${escapeHtml(asset.lot_id)}</div>
+              <div class="readonly-block">sort_order: ${escapeHtml(asset.sort_order)}</div>
+            </div>
+            <div class="script-info-grid">
+              ${renderScriptInfoItem('postTheme', getAssetJsonField(assetJson, 'postTheme'))}
+              ${renderScriptInfoItem('targetAudience', getAssetJsonField(assetJson, 'targetAudience'))}
+              ${renderScriptInfoItem('videoPurpose', getAssetJsonField(assetJson, 'videoPurpose'))}
+              ${['concept', 'style', 'motive', 'expression', 'background', 'imagePrompt'].map(key => {
+                const value = getAssetJsonField(assetJson, key);
+                return value ? renderScriptInfoItem(key, value) : '';
+              }).join('')}
+            </div>
+            <div class="asset-status ${script.status === 'saved' && !script.last_error ? 'is-success' : ''}" aria-live="polite">保存ステータス: ${escapeHtml(script.status || 'draft')}</div>
+            ${script.updated_at ? `<div class="production-note">更新日時: ${escapeHtml(script.updated_at)}</div>` : ''}
+            ${script.last_error ? `<div class="asset-status is-error">エラー詳細: ${escapeHtml(script.last_error)}</div>` : ''}
+          `)}
         </section>
       `;
     }
@@ -2045,6 +2194,7 @@
     }
 
     function renderStep6Production() {
+      if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       if (hasCutBatchData()) return renderStep6BatchProduction();
 
       const activeIndex = productionUiState.activeVideoByStep[6];
@@ -2061,6 +2211,7 @@
     }
 
     function renderStep6BatchProduction() {
+      if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       const activeIndex = getActiveCutBatchVideoIndex(6);
       const video = productionState.cutBatch.videos[activeIndex];
       return `
@@ -2093,6 +2244,7 @@
     }
 
     function renderStep7Production() {
+      if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       if (hasCutBatchData()) return renderStep7BatchProduction();
 
       const activeIndex = productionUiState.activeVideoByStep[7];
@@ -2108,6 +2260,7 @@
     }
 
     function renderStep7BatchProduction() {
+      if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       const activeIndex = getActiveCutBatchVideoIndex(7);
       const video = productionState.cutBatch.videos[activeIndex];
       return `
@@ -2139,6 +2292,7 @@
     }
 
     function renderStep8Production() {
+      if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       if (!hasCutBatchData()) {
         return `
           <section class="production-panel">
@@ -2325,11 +2479,37 @@
       return Boolean(script?.script_json_text || script?.script_json || script?.updated_at);
     }
 
+    function hasValidStep5Script(index = getActiveAssetIndex()) {
+      const script = productionState.step5Scripts?.items?.[clampAssetIndex(index)];
+      return Boolean(script?.is_script_valid === true && script.script_json && typeof script.script_json === 'object');
+    }
+
+    function renderScriptRequiredNotice() {
+      return `
+        <section class="production-panel">
+          <div class="production-note">
+            STEP5で台本JSONをインポートしてください。前回データの誤使用防止のため、台本JSONが未確定の状態ではこのSTEPは表示されません。
+          </div>
+        </section>
+      `;
+    }
+
     function getStep5ScriptInputValue(index, script) {
       if (Object.prototype.hasOwnProperty.call(productionUiState.step5ScriptDraftTexts, index)) {
         return productionUiState.step5ScriptDraftTexts[index];
       }
       return script?.script_json_text || "";
+    }
+
+    function renderManagementDetails(content) {
+      return `
+        <details class="management-details">
+          <summary>詳細情報・管理用データ <span class="production-note">通常作業では開かなくてOKです</span></summary>
+          <div class="management-details-body">
+            ${content}
+          </div>
+        </details>
+      `;
     }
 
     function renderScriptInfoItem(label, value) {
@@ -2487,6 +2667,7 @@
     }
 
     async function uploadStep4AssetImage(file) {
+      if (!state.isProductionContextResolved) return;
       const activeIndex = getActiveAssetIndex();
       const asset = getActiveStep4Asset();
       syncStep4AssetVideoId(asset);
@@ -2513,7 +2694,11 @@
             file_name: file.name,
             mime_type: file.type || 'application/octet-stream',
             image_base64: imageBase64,
-            project_title: state.project,
+            project_title: state.projectName || state.project,
+            organization_id: state.organizationId,
+            project_id: state.projectId,
+            worker_id: state.workerId,
+            project_key: getProductionStateProjectKey(),
             video_id: asset.video_id,
             lot_id: asset.lot_id,
             sort_order: asset.sort_order
@@ -2577,6 +2762,7 @@
     }
 
     async function saveStep4AssetToSupabase() {
+      if (!state.isProductionContextResolved) return;
       const asset = getActiveStep4Asset();
       syncStep4AssetVideoId(asset);
 
@@ -2621,7 +2807,11 @@
       renderProductionWorkspace(getCurrentStepId());
 
       const payload = {
-        project_title: state.project,
+        project_title: state.projectName || state.project,
+        organization_id: state.organizationId,
+        project_id: state.projectId,
+        worker_id: state.workerId,
+        project_key: getProductionStateProjectKey(),
         video_id: asset.video_id,
         lot_id: asset.lot_id,
         sort_order: asset.sort_order,
@@ -2637,7 +2827,7 @@
       try {
         const { error } = await client
           .from(VIDEO_ASSETS_TABLE)
-          .upsert(payload, { onConflict: 'project_title,video_id' });
+          .upsert(payload, { onConflict: 'project_key,video_id' });
         if (error) throw error;
 
         asset.status = 'asset_uploaded';
@@ -2842,6 +3032,8 @@
       const input = els.productionWorkspace.querySelector('textarea[data-kind="step5-script"][data-field="script_json_text"]');
       const text = String(input?.value || getStep5ScriptInputValue(activeIndex, script) || '').trim();
       if (!text) {
+        script.is_script_valid = false;
+        script.status = 'invalid';
         script.last_error = '台本JSONを貼り付けてください。';
         saveProductionState();
         renderProductionWorkspace(getCurrentStepId());
@@ -2851,11 +3043,14 @@
       try {
         script.script_json = JSON.parse(text);
         script.script_json_text = text;
+        script.is_script_valid = true;
         script.status = 'saved';
         script.updated_at = new Date().toISOString();
         script.last_error = '';
         delete productionUiState.step5ScriptDraftTexts[activeIndex];
       } catch (e) {
+        script.is_script_valid = false;
+        script.status = 'invalid';
         script.last_error = `JSONの構文エラー: ${e.message}`;
         productionUiState.step5ScriptDraftTexts[activeIndex] = input?.value || text;
       }
