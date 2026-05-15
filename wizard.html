@@ -720,7 +720,8 @@
         7: 0,
         8: 0
       },
-      step4PreviewUrls: ["", "", ""]
+      step4PreviewUrls: ["", "", ""],
+      step5ScriptDraftTexts: {}
     };
 
     // ============================================================
@@ -1292,13 +1293,17 @@
     function normalizeStep5Script(value, asset) {
       const fallback = createDefaultStep5Script(asset);
       const source = value && typeof value === 'object' ? value : {};
-      const scriptJsonText = String(source.script_json_text || source.scriptJsonText || "");
+      const rawScriptJsonText = String(source.script_json_text || source.scriptJsonText || "");
+      const parsedTextJson = getStoredJsonValue(null, rawScriptJsonText);
+      const storedJson = getStoredJsonValue(source.script_json ?? source.scriptJson, "");
+      const parsedScriptJson = parsedTextJson || storedJson;
+      const scriptJsonText = parsedTextJson ? rawScriptJsonText : (storedJson ? JSON.stringify(storedJson, null, 2) : "");
       return {
         video_id: asset.video_id,
         script_json_text: scriptJsonText,
-        script_json: getStoredJsonValue(source.script_json ?? source.scriptJson, scriptJsonText),
-        status: String(source.status || fallback.status),
-        updated_at: String(source.updated_at || source.updatedAt || ""),
+        script_json: parsedScriptJson,
+        status: parsedScriptJson ? String(source.status || fallback.status) : fallback.status,
+        updated_at: parsedScriptJson ? String(source.updated_at || source.updatedAt || "") : "",
         last_error: String(source.last_error || source.lastError || "")
       };
     }
@@ -2005,10 +2010,10 @@
             <button class="copy-btn is-primary" data-action="copy-step5-script-seed"><i class="ph ph-copy"></i> GPTs渡し用JSONをコピー</button>
             <span class="copy-feedback" aria-live="polite"></span>
           </div>
-          ${renderTextarea('台本JSONインポート', script.script_json_text, 'step5-script', 'script_json_text', activeIndex)}
+          ${renderTextarea('台本JSONインポート', getStep5ScriptInputValue(activeIndex, script), 'step5-script', 'script_json_text', activeIndex)}
           <div class="production-actions">
             <button class="production-btn is-primary" data-action="save-step5-script"><i class="ph ph-floppy-disk"></i> 台本JSONを保存</button>
-            <span class="asset-status ${script.status === 'saved' ? 'is-success' : ''}" aria-live="polite">${script.status === 'saved' ? '台本JSON保存済み' : ''}</span>
+            <span class="asset-status ${script.status === 'saved' && !script.last_error ? 'is-success' : ''}" aria-live="polite">${script.status === 'saved' && !script.last_error ? '台本JSON保存済み' : ''}</span>
           </div>
           ${script.updated_at ? `<div class="production-note">更新日時: ${escapeHtml(script.updated_at)}</div>` : ''}
           ${script.last_error ? `<div class="asset-status is-error">${escapeHtml(script.last_error)}</div>` : ''}
@@ -2318,6 +2323,13 @@
 
     function hasStep5ScriptContent(script) {
       return Boolean(script?.script_json_text || script?.script_json || script?.updated_at);
+    }
+
+    function getStep5ScriptInputValue(index, script) {
+      if (Object.prototype.hasOwnProperty.call(productionUiState.step5ScriptDraftTexts, index)) {
+        return productionUiState.step5ScriptDraftTexts[index];
+      }
+      return script?.script_json_text || "";
     }
 
     function renderScriptInfoItem(label, value) {
@@ -2785,13 +2797,9 @@
         }
       }
       if (kind === 'step5-script') {
-        const script = getActiveStep5Script();
-        script[field] = String(value || '');
-        script.status = 'draft';
-        script.last_error = '';
-        if (field === 'script_json_text' && !script[field].trim()) {
-          script.script_json = null;
-          script.updated_at = '';
+        if (field === 'script_json_text') {
+          productionUiState.step5ScriptDraftTexts[getActiveAssetIndex()] = String(value || '');
+          return;
         }
       }
       if (kind === 'video') {
@@ -2821,6 +2829,7 @@
     function selectProductionAsset(index) {
       ensureProductionAssetCollections();
       const activeIndex = clampAssetIndex(index);
+      delete productionUiState.step5ScriptDraftTexts[getActiveAssetIndex()];
       productionState.step4Assets.activeIndex = activeIndex;
       productionState.step5Scripts.activeIndex = activeIndex;
       saveProductionState();
@@ -2828,10 +2837,11 @@
     }
 
     function saveStep5Script() {
+      const activeIndex = getActiveAssetIndex();
       const script = getActiveStep5Script();
-      const text = String(script.script_json_text || '').trim();
+      const input = els.productionWorkspace.querySelector('textarea[data-kind="step5-script"][data-field="script_json_text"]');
+      const text = String(input?.value || getStep5ScriptInputValue(activeIndex, script) || '').trim();
       if (!text) {
-        script.status = 'save_failed';
         script.last_error = '台本JSONを貼り付けてください。';
         saveProductionState();
         renderProductionWorkspace(getCurrentStepId());
@@ -2844,9 +2854,10 @@
         script.status = 'saved';
         script.updated_at = new Date().toISOString();
         script.last_error = '';
+        delete productionUiState.step5ScriptDraftTexts[activeIndex];
       } catch (e) {
-        script.status = 'save_failed';
         script.last_error = `JSONの構文エラー: ${e.message}`;
+        productionUiState.step5ScriptDraftTexts[activeIndex] = input?.value || text;
       }
 
       saveProductionState();
