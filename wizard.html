@@ -1428,16 +1428,20 @@
       const rawScriptJsonText = String(source.script_json_text || source.scriptJsonText || "");
       const parsedTextJson = getStoredJsonValue(null, rawScriptJsonText);
       const storedJson = getStoredJsonValue(source.script_json ?? source.scriptJson, "");
-      const parsedScriptJson = parsedTextJson || storedJson;
-      const scriptJsonText = parsedTextJson ? rawScriptJsonText : (storedJson ? JSON.stringify(storedJson, null, 2) : "");
+      const sourceIsValid = source.is_script_valid === true;
+      const parsedScriptJson = sourceIsValid ? (parsedTextJson || storedJson) : null;
+      const scriptErrors = validateStep5ScriptJson(parsedScriptJson);
+      const hasValidScriptJson = Boolean(parsedScriptJson && scriptErrors.length === 0);
+      const scriptJsonText = rawScriptJsonText || (sourceIsValid && storedJson ? JSON.stringify(storedJson, null, 2) : "");
+      const fallbackStatus = scriptJsonText.trim() || source.status === 'invalid' ? 'invalid' : fallback.status;
       return {
         video_id: asset.video_id,
         script_json_text: scriptJsonText,
-        script_json: parsedScriptJson,
-        is_script_valid: source.is_script_valid === true && Boolean(parsedScriptJson),
-        status: parsedScriptJson ? String(source.status || fallback.status) : fallback.status,
-        updated_at: parsedScriptJson ? String(source.updated_at || source.updatedAt || "") : "",
-        last_error: String(source.last_error || source.lastError || "")
+        script_json: hasValidScriptJson ? parsedScriptJson : null,
+        is_script_valid: hasValidScriptJson,
+        status: hasValidScriptJson ? String(source.status || 'saved') : fallbackStatus,
+        updated_at: hasValidScriptJson ? String(source.updated_at || source.updatedAt || "") : "",
+        last_error: hasValidScriptJson ? String(source.last_error || source.lastError || "") : String(source.last_error || source.lastError || "")
       };
     }
 
@@ -1450,6 +1454,36 @@
       } catch (e) {
         return null;
       }
+    }
+
+    function validateStep5ScriptJson(json) {
+      const errors = [];
+
+      if (!json || typeof json !== 'object' || Array.isArray(json)) {
+        errors.push("JSONのルートはオブジェクトにしてください。");
+        return errors;
+      }
+
+      if (!Array.isArray(json.scenes) || json.scenes.length === 0) {
+        errors.push("scenes は1件以上の配列にしてください。");
+        return errors;
+      }
+
+      json.scenes.forEach((scene, index) => {
+        const path = `scenes[${index}]`;
+
+        if (!scene || typeof scene !== 'object' || Array.isArray(scene)) {
+          errors.push(`${path} はオブジェクトにしてください。`);
+          return;
+        }
+
+        if (!scene.scene_id) errors.push(`${path}.scene_id`);
+        if (scene.order === undefined || scene.order === null) errors.push(`${path}.order`);
+        if (!scene.video_prompt) errors.push(`${path}.video_prompt`);
+        if (!Array.isArray(scene.voice_lines)) errors.push(`${path}.voice_lines`);
+      });
+
+      return errors;
     }
 
     function normalizeCutBatch(value, options = {}) {
@@ -2197,14 +2231,14 @@
       if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       if (hasCutBatchData()) return renderStep6BatchProduction();
 
-      const activeIndex = productionUiState.activeVideoByStep[6];
-      const video = productionState.videos[activeIndex];
+      const activeIndex = getActiveAssetIndex();
+      const video = productionState.videos[activeIndex] || createDefaultVideo(activeIndex + 1);
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-video-camera"></i> 映像・動画素材生成</h2>
+          ${renderAssetTabs(6)}
           ${renderCutBatchImportPanel()}
           ${renderCutBatchMissingNote()}
-          ${renderVideoTabs(6)}
           ${video.scenes.map((scene, sceneIndex) => renderVideoScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
         </section>
       `;
@@ -2212,15 +2246,15 @@
 
     function renderStep6BatchProduction() {
       if (!hasValidStep5Script()) return renderScriptRequiredNotice();
-      const activeIndex = getActiveCutBatchVideoIndex(6);
+      const activeIndex = getActiveAssetIndex();
       const video = productionState.cutBatch.videos[activeIndex];
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-video-camera"></i> 映像・動画素材生成</h2>
+          ${renderAssetTabs(6)}
           ${renderCutBatchImportPanel()}
           ${renderCutBatchSummary()}
-          ${renderCutBatchVideoTabs(6)}
-          ${video.cuts.map((cut, cutIndex) => renderVideoCutCard(cut, activeIndex, cutIndex)).join('')}
+          ${video?.cuts?.length ? video.cuts.map((cut, cutIndex) => renderVideoCutCard(cut, activeIndex, cutIndex)).join('') : `<div class="production-note">この素材に対応するカットデータがありません。</div>`}
         </section>
       `;
     }
@@ -2247,13 +2281,13 @@
       if (!hasValidStep5Script()) return renderScriptRequiredNotice();
       if (hasCutBatchData()) return renderStep7BatchProduction();
 
-      const activeIndex = productionUiState.activeVideoByStep[7];
-      const video = productionState.videos[activeIndex];
+      const activeIndex = getActiveAssetIndex();
+      const video = productionState.videos[activeIndex] || createDefaultVideo(activeIndex + 1);
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-microphone-stage"></i> ナレーション・音声生成</h2>
+          ${renderAssetTabs(7)}
           ${renderCutBatchMissingNote()}
-          ${renderVideoTabs(7)}
           ${video.scenes.map((scene, sceneIndex) => renderVoiceScene(scene, activeIndex, sceneIndex)).join('') || `<div class="production-note">STEP 5でシーンを追加すると、ここに表示されます。</div>`}
         </section>
       `;
@@ -2261,14 +2295,14 @@
 
     function renderStep7BatchProduction() {
       if (!hasValidStep5Script()) return renderScriptRequiredNotice();
-      const activeIndex = getActiveCutBatchVideoIndex(7);
+      const activeIndex = getActiveAssetIndex();
       const video = productionState.cutBatch.videos[activeIndex];
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-microphone-stage"></i> ナレーション・音声生成</h2>
+          ${renderAssetTabs(7)}
           ${renderCutBatchSummary()}
-          ${renderCutBatchVideoTabs(7)}
-          ${video.cuts.map((cut, cutIndex) => renderVoiceCutCard(cut, activeIndex, cutIndex)).join('')}
+          ${video?.cuts?.length ? video.cuts.map((cut, cutIndex) => renderVoiceCutCard(cut, activeIndex, cutIndex)).join('') : `<div class="production-note">この素材に対応するカットデータがありません。</div>`}
         </section>
       `;
     }
@@ -2297,19 +2331,20 @@
         return `
           <section class="production-panel">
             <h2 class="section-title"><i class="ph ph-scissors"></i> 編集・仕上げ</h2>
+            ${renderAssetTabs(8)}
             ${renderCutBatchMissingNote()}
           </section>
         `;
       }
 
-      const activeIndex = getActiveCutBatchVideoIndex(8);
+      const activeIndex = getActiveAssetIndex();
       const video = productionState.cutBatch.videos[activeIndex];
       return `
         <section class="production-panel">
           <h2 class="section-title"><i class="ph ph-scissors"></i> 編集・仕上げ</h2>
+          ${renderAssetTabs(8)}
           ${renderCutBatchSummary()}
-          ${renderCutBatchVideoTabs(8)}
-          ${video.cuts.map((cut, cutIndex) => renderEditCutCard(cut, activeIndex, cutIndex)).join('')}
+          ${video?.cuts?.length ? video.cuts.map((cut, cutIndex) => renderEditCutCard(cut, activeIndex, cutIndex)).join('') : `<div class="production-note">この素材に対応するカットデータがありません。</div>`}
         </section>
       `;
     }
@@ -2481,14 +2516,36 @@
 
     function hasValidStep5Script(index = getActiveAssetIndex()) {
       const script = productionState.step5Scripts?.items?.[clampAssetIndex(index)];
-      return Boolean(script?.is_script_valid === true && script.script_json && typeof script.script_json === 'object');
+      const json = script?.script_json;
+      return Boolean(
+        script &&
+        script.is_script_valid === true &&
+        json &&
+        typeof json === 'object' &&
+        !Array.isArray(json) &&
+        validateStep5ScriptJson(json).length === 0
+      );
+    }
+
+    function markStep5ScriptInvalid(script, message, options = {}) {
+      if (!script) return;
+      const { keepText = false, text = "" } = options;
+      script.script_json = null;
+      script.script_json_text = keepText ? String(text || "") : "";
+      script.is_script_valid = false;
+      script.status = "invalid";
+      script.updated_at = "";
+      script.last_error = message;
     }
 
     function renderScriptRequiredNotice() {
+      const stepId = getCurrentStepId();
+      const tabs = stepId >= 6 && stepId <= 8 ? renderAssetTabs(stepId) : "";
       return `
         <section class="production-panel">
+          ${tabs}
           <div class="production-note">
-            STEP5で台本JSONをインポートしてください。前回データの誤使用防止のため、台本JSONが未確定の状態ではこのSTEPは表示されません。
+            台本JSONが未設定、またはSTEP6〜8で使えない形式です。STEP5で正しい台本JSONを保存してください。
           </div>
         </section>
       `;
@@ -3030,18 +3087,29 @@
       const activeIndex = getActiveAssetIndex();
       const script = getActiveStep5Script();
       const input = els.productionWorkspace.querySelector('textarea[data-kind="step5-script"][data-field="script_json_text"]');
-      const text = String(input?.value || getStep5ScriptInputValue(activeIndex, script) || '').trim();
+      const rawText = String(input ? input.value : getStep5ScriptInputValue(activeIndex, script) || '');
+      const text = rawText.trim();
+
       if (!text) {
-        script.is_script_valid = false;
-        script.status = 'invalid';
-        script.last_error = '台本JSONを貼り付けてください。';
+        markStep5ScriptInvalid(script, '台本JSONを貼り付けてください。');
+        delete productionUiState.step5ScriptDraftTexts[activeIndex];
         saveProductionState();
         renderProductionWorkspace(getCurrentStepId());
         return;
       }
 
       try {
-        script.script_json = JSON.parse(text);
+        const parsed = JSON.parse(text);
+        const errors = validateStep5ScriptJson(parsed);
+        if (errors.length > 0) {
+          markStep5ScriptInvalid(script, `JSON構造エラー: ${errors.join(", ")}`, { keepText: true, text: rawText });
+          delete productionUiState.step5ScriptDraftTexts[activeIndex];
+          saveProductionState();
+          renderProductionWorkspace(getCurrentStepId());
+          return;
+        }
+
+        script.script_json = parsed;
         script.script_json_text = text;
         script.is_script_valid = true;
         script.status = 'saved';
@@ -3049,10 +3117,8 @@
         script.last_error = '';
         delete productionUiState.step5ScriptDraftTexts[activeIndex];
       } catch (e) {
-        script.is_script_valid = false;
-        script.status = 'invalid';
-        script.last_error = `JSONの構文エラー: ${e.message}`;
-        productionUiState.step5ScriptDraftTexts[activeIndex] = input?.value || text;
+        markStep5ScriptInvalid(script, `JSONの構文エラー: ${e.message}`, { keepText: true, text: rawText });
+        productionUiState.step5ScriptDraftTexts[activeIndex] = rawText;
       }
 
       saveProductionState();
