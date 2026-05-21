@@ -1,0 +1,1272 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram リール台本｜AI×副業×自動化 バズ設計 2026</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+    background: #f7f8fa;
+    color: #1a1a1a;
+    line-height: 1.85;
+    font-size: 14.5px;
+  }
+
+  .wrapper {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+  }
+
+  /* =============================================
+     COVER PAGE
+  ============================================= */
+  .cover-page {
+    background: #f0f2fc;
+    border-radius: 14px;
+    margin-bottom: 0;
+    margin-top: 40px;
+    overflow: hidden;
+    position: relative;
+    break-inside: avoid;
+  }
+
+  /* Top accent stripe */
+  .cover-page::before {
+    content: '';
+    display: block;
+    height: 6px;
+    background: linear-gradient(90deg, #3f51b5 0%, #7986cb 50%, #9fa8da 100%);
+    width: 100%;
+  }
+
+  /* Decorative circle — top right */
+  .cover-deco-ring {
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    border: 48px solid rgba(92, 107, 192, 0.10);
+    pointer-events: none;
+  }
+  /* Decorative circle — bottom left */
+  .cover-deco-ring2 {
+    position: absolute;
+    bottom: -80px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 36px solid rgba(92, 107, 192, 0.07);
+    pointer-events: none;
+  }
+
+  .cover-inner {
+    padding: 48px 52px 44px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Category badge */
+  .cover-genre {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid #c5caf5;
+    border-radius: 20px;
+    padding: 5px 16px 5px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #3f51b5;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .cover-genre-dot {
+    width: 7px;
+    height: 7px;
+    background: #5c6bc0;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* Main title */
+  .cover-h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1.35;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .cover-h1 .accent { color: #3f51b5; }
+
+  .cover-h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #5c6bc0;
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+  }
+
+  /* Description */
+  .cover-desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.75;
+    max-width: 560px;
+    margin-bottom: 36px;
+    padding-left: 14px;
+    border-left: 3px solid #c5caf5;
+  }
+
+  /* Meta chips row */
+  .cover-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  .cover-chip {
+    background: #ffffff;
+    border: 1px solid #dde0f5;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #3c4ba8;
+    line-height: 1.4;
+  }
+  .cover-chip strong {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #9fa8da;
+    text-transform: uppercase;
+    margin-bottom: 1px;
+  }
+
+  /* Pattern preview row */
+  .cover-patterns {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 0;
+  }
+  .cover-pattern-item {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #dde0f5;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .cover-pattern-num {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #9fa8da;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .cover-pattern-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-bottom: 3px;
+  }
+  .cover-pattern-sub {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .cpn-1 { border-top: 3px solid #1a56c9; }
+  .cpn-2 { border-top: 3px solid #a0185c; }
+  .cpn-3 { border-top: 3px solid #0e6940; }
+
+  /* Bottom bar */
+  .cover-footer {
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid #dde0f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cover-footer-brand {
+    font-size: 11px;
+    font-weight: 800;
+    color: #9fa8da;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cover-footer-date {
+    font-size: 11px;
+    color: #aaa;
+  }
+
+  /* Page break after cover */
+  .page-break { break-before: page; page-break-before: always; }
+
+  /* =============================================
+     TABLE OF CONTENTS
+  ============================================= */
+  .toc-page {
+    background: #ffffff;
+    border: 1px solid #e0e4eb;
+    border-radius: 10px;
+    padding: 36px 40px 32px;
+    margin-top: 40px;
+    margin-bottom: 28px;
+    break-inside: avoid;
+  }
+
+  .toc-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #e8eaf0;
+  }
+  .toc-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: #1a1a1a;
+    letter-spacing: -0.01em;
+  }
+  .toc-title-en {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9fa8da;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Group label */
+  .toc-group {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #9fa8da;
+    text-transform: uppercase;
+    margin-top: 20px;
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .toc-group:first-of-type { margin-top: 0; }
+
+  /* TOC entry */
+  .toc-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    margin-bottom: 2px;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 5px;
+    padding: 6px 8px;
+    transition: background 0.15s;
+  }
+  .toc-entry:hover { background: #f4f5fb; }
+
+  .toc-num {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #c5caf5;
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+  .toc-badge {
+    flex-shrink: 0;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 10px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .tb-survey  { background: #eef0fc; color: #3f51b5; border: 1px solid #c5caf5; }
+  .tb-script  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  .tb-prep    { background: #e8f0fe; color: #1a56c9; border: 1px solid #b3c8f7; }
+  .tb-pasona  { background: #fce8f3; color: #a0185c; border: 1px solid #f0b3d4; }
+  .tb-hook    { background: #e8fdf2; color: #0e6940; border: 1px solid #a3e6c3; }
+  .tb-summary { background: #fff8e1; color: #b8860b; border: 1px solid #ffe082; }
+  .tb-ref     { background: #f5f5f5; color: #777;    border: 1px solid #ddd; }
+
+  .toc-label {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1a1a1a;
+    flex: 1;
+    line-height: 1.4;
+  }
+  .toc-sub {
+    font-size: 11px;
+    color: #aaa;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .toc-dots {
+    flex: 1;
+    min-width: 20px;
+    border-bottom: 1px dotted #dde0f5;
+    margin: 0 10px;
+    position: relative;
+    top: -3px;
+  }
+
+  /* =============================================
+     SECTIONS
+  ============================================= */
+  .section {
+    background: #ffffff;
+    border: 1px solid #e0e4eb;
+    border-radius: 10px;
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    break-inside: avoid;
+  }
+
+  h2 {
+    font-size: 17px;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8eaf0;
+  }
+  h2 .num {
+    display: inline-block;
+    background: #5c6bc0;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.05em;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+    margin-top: 18px;
+    margin-bottom: 8px;
+  }
+
+  p { margin-bottom: 10px; color: #333; }
+
+  ul, ol { padding-left: 20px; margin-bottom: 10px; }
+  li { margin-bottom: 5px; color: #333; }
+
+  /* =============================================
+     TREND TABLE
+  ============================================= */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  thead tr { background: #5c6bc0; color: #fff; }
+  thead th {
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  tbody tr:nth-child(even) { background: #f4f5fb; }
+  tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e8eaf0;
+    vertical-align: top;
+    line-height: 1.65;
+  }
+
+  /* =============================================
+     HOOK CHIPS
+  ============================================= */
+  .hook-grid { margin-top: 10px; margin-bottom: 4px; }
+  .hook-row  { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .hook-chip {
+    background: #eef0fc;
+    border: 1px solid #c5caf5;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    color: #3c4ba8;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .hook-chip.hot   { background: #fdf0e8; border-color: #f0c09a; color: #b8521a; }
+  .hook-chip.green { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+
+  /* =============================================
+     ALGORITHM BARS
+  ============================================= */
+  .algo-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    break-inside: avoid;
+  }
+  .algo-rank {
+    min-width: 28px;
+    height: 28px;
+    background: #5c6bc0;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .algo-rank.gold { background: #e4962a; }
+  .algo-bar-fill {
+    flex: 1;
+    height: 8px;
+    background: #e8eaf0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .algo-bar-fill-inner          { height: 100%; background: #5c6bc0; border-radius: 4px; }
+  .algo-bar-fill-inner.gold     { background: #e4962a; }
+  .algo-label  { font-size: 13px; color: #333; min-width: 120px; }
+  .algo-weight { font-size: 12px; color: #888; min-width: 60px; text-align: right; }
+
+  /* =============================================
+     SCRIPT CARDS
+  ============================================= */
+  .script-card {
+    background: #ffffff;
+    border: 1px solid #e0e4eb;
+    border-radius: 10px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  .script-header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid #e8eaf0;
+  }
+  .script-type-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .badge-prep   { background: #e8f0fe; color: #1a56c9; border: 1px solid #b3c8f7; }
+  .badge-pasona { background: #fce8f3; color: #a0185c; border: 1px solid #f0b3d4; }
+  .badge-hook   { background: #e8fdf2; color: #0e6940; border: 1px solid #a3e6c3; }
+
+  .script-title { font-size: 16px; font-weight: 800; color: #1a1a1a; margin-bottom: 4px; }
+  .script-desc  { font-size: 12.5px; color: #666; line-height: 1.6; }
+
+  .script-body { padding: 20px 28px 24px; }
+
+  .script-phase { margin-bottom: 16px; break-inside: avoid; }
+  .phase-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #fff;
+    padding: 3px 10px 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .phase-label.phase-hook    { background: #c0392b; }
+  .phase-label.phase-body    { background: #2980b9; }
+  .phase-label.phase-cta     { background: #27ae60; }
+  .phase-label.phase-point   { background: #5c6bc0; }
+  .phase-label.phase-reason  { background: #8e44ad; }
+  .phase-label.phase-example { background: #e67e22; }
+  .phase-label.phase-problem { background: #c0392b; }
+  .phase-label.phase-affinity{ background: #e67e22; }
+  .phase-label.phase-solution{ background: #27ae60; }
+  .phase-label.phase-narrow  { background: #2980b9; }
+  .phase-time {
+    font-size: 10.5px;
+    background: rgba(255,255,255,0.25);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+
+  .script-line {
+    background: #f7f8fa;
+    border-left: 3px solid #c5caf5;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #1a1a1a;
+    line-height: 1.75;
+    font-weight: 500;
+  }
+  .script-line.hook-line { border-left-color: #e74c3c; background: #fff5f5; }
+  .script-line.cta-line  { border-left-color: #27ae60; background: #f0faf4; }
+  .script-line.point-line{ border-left-color: #5c6bc0; background: #f0f2fc; }
+
+  .script-note {
+    font-size: 11.5px;
+    color: #888;
+    margin-top: 4px;
+    padding-left: 4px;
+    font-style: italic;
+  }
+
+  .script-tips {
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: #f4f5fb;
+    border-radius: 6px;
+    border: 1px solid #e0e4eb;
+  }
+  .script-tips-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #5c6bc0;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  .script-tips ul { padding-left: 16px; margin: 0; }
+  .script-tips li { font-size: 12px; color: #555; margin-bottom: 3px; }
+
+  /* =============================================
+     STRUCTURE FLOW
+  ============================================= */
+  .flow {
+    display: flex;
+    gap: 0;
+    margin: 12px 0 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+  .flow-item {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.4;
+  }
+  .flow-item span { display: block; font-size: 10px; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+
+  /* =============================================
+     REFERENCES
+  ============================================= */
+  .refs { margin-top: 12px; padding-top: 16px; border-top: 1px solid #e8eaf0; }
+  .refs h3 { font-size: 13px; color: #888; margin-bottom: 8px; }
+  .refs ol  { padding-left: 18px; }
+  .refs li  { font-size: 11.5px; color: #888; margin-bottom: 4px; }
+  .refs a   { color: #5c6bc0; text-decoration: none; word-break: break-all; }
+  .refs a:hover { text-decoration: underline; }
+
+  .highlight { color: #5c6bc0; font-weight: 700; }
+  .warn      { color: #c0392b; font-weight: 700; }
+  strong     { font-weight: 700; }
+
+  /* inline citation */
+  a.inline_marker {
+    color: #5c6bc0;
+    font-size: 11px;
+    vertical-align: super;
+    text-decoration: none;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .wrapper { padding: 0; }
+    .script-card, .section, .toc-page { border: 1px solid #ccc; }
+    .cover-page { background: #f0f2fc; }
+  }
+</style>
+
+
+</head><body>
+<div class="wrapper" data-cid="jseGK2">
+
+  <!-- =============================================
+       COVER PAGE
+  ============================================= -->
+  <div class="cover-page" data-cid="IoXlXM">
+    <div class="cover-deco-ring editor-empty-block" data-cid="Wgng9C"></div>
+    <div class="cover-deco-ring2 editor-empty-block" data-cid="N56afs"></div>
+    <div class="cover-inner" data-cid="RSoUU2">
+
+      <div class="cover-genre" data-cid="i4cInG">
+        <span class="cover-genre-dot" data-cid="yJE51q"></span>
+        Instagram Reels Script Design &nbsp;|&nbsp; 2026
+      </div>
+
+      <div class="cover-h1" data-cid="Yj6C8y">
+        <span class="accent" data-cid="YRrTlk">AI×副業×自動化</span>ジャンル<br data-cid="kQCz35">
+        30秒リール台本 3パターン
+      </div>
+      <div class="cover-h2" data-cid="zP9G1G">バズ構造・トレンド調査 完全版</div>
+
+      <p class="cover-desc" data-cid="Rj2go8">
+        2026年最新Instagramアルゴリズム・バズトレンドを調査し、
+        30〜40代・AIに興味あり・副業志望ターゲット向けに設計した
+        PREP構成 / PASONA構成 / フック型の台本3本と、
+        構成設計の根拠データ・演出メモを完全収録。
+      </p>
+
+      <div class="cover-chips" data-cid="sw1Bnl">
+        <div class="cover-chip" data-cid="AOK3sv">
+          <strong data-cid="LISZOv">作成日</strong>2026年5月
+        </div>
+        <div class="cover-chip" data-cid="4xy6iO">
+          <strong data-cid="huB33F">ターゲット</strong>30〜40代 / AI興味 / 副業志望
+        </div>
+        <div class="cover-chip" data-cid="qH_4fq">
+          <strong data-cid="gmd1fJ">動画尺</strong>30秒リール（ショート）
+        </div>
+        <div class="cover-chip" data-cid="UEM78n">
+          <strong data-cid="HiVu5P">台本数</strong>3パターン
+        </div>
+        <div class="cover-chip" data-cid="NUfUBM">
+          <strong data-cid="vnYqQu">最重要指標</strong>DMシェア数（2026年版）
+        </div>
+      </div>
+
+      <div class="cover-patterns" data-cid="emafPp">
+        <div class="cover-pattern-item cpn-1" data-cid="QC19_i">
+          <div class="cover-pattern-num" data-cid="qVSrfu">Pattern 01</div>
+          <div class="cover-pattern-name" data-cid="JdcGQO">PREP構成</div>
+          <div class="cover-pattern-sub editor-empty-block" data-cid="8TS2Rj">結論先出しで<br data-cid="n1uJSy">論理的に納得させる</div>
+        </div>
+        <div class="cover-pattern-item cpn-2" data-cid="6eqNEW">
+          <div class="cover-pattern-num" data-cid="ehGclx">Pattern 02</div>
+          <div class="cover-pattern-name" data-cid="rF6n4k">PASONA構成</div>
+          <div class="cover-pattern-sub editor-empty-block" data-cid="Moz8NI">共感から始まる<br data-cid="der4z8">感情導線設計</div>
+        </div>
+        <div class="cover-pattern-item cpn-3" data-cid="R8j-0l">
+          <div class="cover-pattern-num" data-cid="kRS8eN">Pattern 03</div>
+          <div class="cover-pattern-name" data-cid="NX5y0e">フック型</div>
+          <div class="cover-pattern-sub editor-empty-block" data-cid="cMCVi7">冒頭2秒で<br data-cid="kZvQOp">全視聴を確定させる</div>
+        </div>
+      </div>
+
+      <div class="cover-footer" data-cid="lDr3ZL">
+        <span class="cover-footer-brand" data-cid="n21mG6">Reel Script &amp; Strategy Doc</span>
+        <span class="cover-footer-date" data-cid="AGTloi">Prepared May 2026</span>
+      </div>
+
+    </div>
+  </div><!-- /cover-page -->
+
+  <div class="page-break editor-empty-block" data-cid="ffMgBJ"></div>
+
+  <!-- =============================================
+       TABLE OF CONTENTS
+  ============================================= -->
+  <div class="toc-page" id="toc" data-cid="mnJZHx">
+    <div class="toc-header" data-cid="XJjbMD">
+      <span class="toc-title" data-cid="pgpK_s">目次</span>
+      <span class="toc-title-en" data-cid="3_gTCr">Table of Contents</span>
+    </div>
+
+    <!-- Group: 調査セクション -->
+    <div class="toc-group" data-cid="a3evpD">調査レポート</div>
+
+    <a class="toc-entry" href="#sec-algo" data-cid="EJGK8d">
+      <span class="toc-num" data-cid="63H2cX">01</span>
+      <span class="toc-badge tb-survey" data-cid="dL5607">調査</span>
+      <span class="toc-label" data-cid="smHvAC">2026年 Instagramリール アルゴリズム評価指標</span>
+      <span class="toc-sub" data-cid="s-9yKO">DMシェア数が最重要指標に</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-pattern" data-cid="dq3OtJ">
+      <span class="toc-num" data-cid="pZGOgD">02</span>
+      <span class="toc-badge tb-survey" data-cid="xd1NDg">調査</span>
+      <span class="toc-label" data-cid="_fnDrq">バズりやすい構成パターン（冒頭・展開・CTA）</span>
+      <span class="toc-sub" data-cid="KnNTks">3層設計モデル</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-keywords" data-cid="tTqEVb">
+      <span class="toc-num" data-cid="4g9e5H">03</span>
+      <span class="toc-badge tb-survey" data-cid="O7XP_Z">調査</span>
+      <span class="toc-label" data-cid="ABtSnv">今伸びているキーワード・フック</span>
+      <span class="toc-sub" data-cid="4JTpie">AI×副業×自動化ジャンル</span>
+    </a>
+
+    <!-- Group: 台本 -->
+    <div class="toc-group" data-cid="WMOZaE">台本セクション</div>
+
+    <a class="toc-entry" href="#sec-scripts-intro" data-cid="vfagy0">
+      <span class="toc-num" data-cid="jRL9ll">04</span>
+      <span class="toc-badge tb-script" data-cid="uiT3-Y">台本</span>
+      <span class="toc-label" data-cid="CtOdsP">30秒リール台本 3パターン — 概要</span>
+      <span class="toc-sub" data-cid="y-VZ--">構成法・特徴・使い分け</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-prep" data-cid="GztNN3">
+      <span class="toc-num" data-cid="9lBQY7">05</span>
+      <span class="toc-badge tb-prep" data-cid="qVOfhc">PREP</span>
+      <span class="toc-label" data-cid="6-MGGf">Pattern 1 — PREP構成</span>
+      <span class="toc-sub" data-cid="k3g7JS">「AIで副業月5万は3ステップで実現できる」</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-pasona" data-cid="eALD-H">
+      <span class="toc-num" data-cid="KUoixm">06</span>
+      <span class="toc-badge tb-pasona" data-cid="R2c7WD">PASONA</span>
+      <span class="toc-label" data-cid="9NBnkd">Pattern 2 — PASONA構成</span>
+      <span class="toc-sub" data-cid="fG22Uv">「副業で稼げない人がやっている、たった1つの間違い」</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-hook" data-cid="_YIuFb">
+      <span class="toc-num" data-cid="WkY_c8">07</span>
+      <span class="toc-badge tb-hook" data-cid="Z40Y5V">フック</span>
+      <span class="toc-label" data-cid="LwWAYQ">Pattern 3 — フック型</span>
+      <span class="toc-sub" data-cid="H9czD6">「知らないと5年後に後悔する」</span>
+    </a>
+
+    <!-- Group: まとめ -->
+    <div class="toc-group" data-cid="J-txVX">まとめ・参考</div>
+
+    <a class="toc-entry" href="#sec-compare" data-cid="fWSUSK">
+      <span class="toc-num" data-cid="H9vkI5">08</span>
+      <span class="toc-badge tb-summary" data-cid="itb2vh">まとめ</span>
+      <span class="toc-label" data-cid="8Yi4Ig">3パターン比較 &amp; 使い分けガイド</span>
+      <span class="toc-sub" data-cid="kMyl1y">週次運用ローテーション推奨</span>
+    </a>
+
+    <a class="toc-entry" href="#sec-refs" data-cid="d-17SH">
+      <span class="toc-num" data-cid="vmCkEI">09</span>
+      <span class="toc-badge tb-ref" data-cid="ip_k7c">参考</span>
+      <span class="toc-label" data-cid="gZd1hX">参考情報</span>
+      <span class="toc-sub" data-cid="ebVGwn">出典リスト</span>
+    </a>
+
+  </div><!-- /toc-page -->
+
+  <!-- =============================================
+       SECTION 1: ALGORITHM
+  ============================================= -->
+  <div class="section" id="sec-algo" data-cid="1Ummvq">
+    <h2 data-cid="yBVF5K"><span class="num" data-cid="JXsv2t">調査 01</span>2026年 Instagramリール アルゴリズム評価指標</h2>
+    <p data-cid="qc-AWo">
+      2026年のInstagramは<strong data-cid="fs9XMO">「リール中心の発見面エンジン」</strong>へと進化し、フォロワー数に依存せず100万再生が狙える構造になっています。
+      CEOが公言した最重要指標は<strong data-cid="rOmyPi">DMシェア数</strong>で、いいね・コメントの約5倍の重みを持つとされています。
+      <a class="inline_marker" href="#ref1" data-cid="TUP-Hs">1</a>
+    </p>
+
+    <div style="margin-top: 16px; margin-bottom: 4px;" data-cid="0AifO9">
+      <div class="algo-bar" data-cid="9GrCmY">
+        <div class="algo-rank gold" data-cid="IJgrCt">1</div>
+        <div class="algo-label" data-cid="NVo3g0"><strong data-cid="uF-LMt">DMシェア数</strong></div>
+        <div class="algo-bar-fill" data-cid="4cIAfj"><div class="algo-bar-fill-inner gold editor-empty-block" style="width:100%" data-cid="UHXMC6"></div></div>
+        <div class="algo-weight" data-cid="55KHQs">最重要</div>
+      </div>
+      <div class="algo-bar" data-cid="WoCkzo">
+        <div class="algo-rank" data-cid="iLVQ4M">2</div>
+        <div class="algo-label" data-cid="xc7jEm">完視聴率</div>
+        <div class="algo-bar-fill" data-cid="LBOaUK"><div class="algo-bar-fill-inner editor-empty-block" style="width:78%" data-cid="sM11rI"></div></div>
+        <div class="algo-weight" data-cid="yKGe6L">非常に高</div>
+      </div>
+      <div class="algo-bar" data-cid="4d5t0a">
+        <div class="algo-rank" data-cid="HIT5FM">3</div>
+        <div class="algo-label" data-cid="U62n4P">総滞在時間</div>
+        <div class="algo-bar-fill" data-cid="ktBoaR"><div class="algo-bar-fill-inner editor-empty-block" style="width:62%" data-cid="6CFNUk"></div></div>
+        <div class="algo-weight" data-cid="45hHz1">高</div>
+      </div>
+      <div class="algo-bar" data-cid="FSoAQR">
+        <div class="algo-rank" data-cid="4DJN6k">4</div>
+        <div class="algo-label" data-cid="wtpFlp">保存数</div>
+        <div class="algo-bar-fill" data-cid="iTn3kP"><div class="algo-bar-fill-inner editor-empty-block" style="width:50%" data-cid="o3149J"></div></div>
+        <div class="algo-weight" data-cid="xFbEbt">中〜高</div>
+      </div>
+      <div class="algo-bar" data-cid="UlJiES">
+        <div class="algo-rank" data-cid="YisOcM">5</div>
+        <div class="algo-label" data-cid="D9bO4p">コメント数</div>
+        <div class="algo-bar-fill" data-cid="1k1U0P"><div class="algo-bar-fill-inner editor-empty-block" style="width:36%" data-cid="AFZiGV"></div></div>
+        <div class="algo-weight" data-cid="e7UpB4">中</div>
+      </div>
+      <div class="algo-bar" data-cid="2rdjDw">
+        <div class="algo-rank" data-cid="qnaEtS">6</div>
+        <div class="algo-label" data-cid="H9YBH2">プロフィール訪問</div>
+        <div class="algo-bar-fill" data-cid="2-e0j0"><div class="algo-bar-fill-inner editor-empty-block" style="width:24%" data-cid="6Tr4Tj"></div></div>
+        <div class="algo-weight" data-cid="QAkTk6">中</div>
+      </div>
+    </div>
+
+    <p style="margin-top:14px;" data-cid="amHmOt">
+      <span class="warn" data-cid="0zXt5s">バズ狙いは7〜30秒</span>、教育系は60〜90秒が最適とされています。冒頭の2秒で視聴継続の70%が決まるため、
+      フック設計が台本の最重要パートです。<a class="inline_marker" href="#ref1" data-cid="37_Puo">1</a>
+    </p>
+  </div>
+
+  <!-- =============================================
+       SECTION 2: BUZZ PATTERNS
+  ============================================= -->
+  <div class="section" id="sec-pattern" data-cid="pLV_Ed">
+    <h2 data-cid="tr3SEH"><span class="num" data-cid="KHa7TP">調査 02</span>バズりやすい構成パターン（冒頭・展開・CTA）</h2>
+    <p data-cid="DnxrIf">
+      2026年に拡散が確認されているリールは、下記の<strong data-cid="QSm_1E">3層設計モデル</strong>に沿って構成されています。
+      <a class="inline_marker" href="#ref1" data-cid="AQe-Wx">1</a>
+    </p>
+
+    <div class="flow" data-cid="H7qwjn">
+      <div class="flow-item" style="background:#c0392b;" data-cid="ZbDdt5">第1層 フック<span data-cid="yMDUfx">0〜2秒</span></div>
+      <div class="flow-item" style="background:#2980b9;" data-cid="kfv7Ks">第2層 リテンション<span data-cid="2kd2JE">2〜20秒</span></div>
+      <div class="flow-item" style="background:#27ae60;" data-cid="lTcKu5">第3層 アクション<span data-cid="TrV4ff">最後3〜5秒</span></div>
+    </div>
+
+    <div class="sk-doc-native-table-frame" data-scroll-left-active="false" data-scroll-right-active="false" data-scrolling="false" data-cid="tx3PA_"><table data-cid="Pf-v-k">
+      <thead data-cid="e76A-2">
+        <tr data-cid="2sxOfl">
+          <th data-cid="a0Sd0y">フェーズ</th>
+          <th data-cid="nuYwvJ">役割</th>
+          <th data-cid="z-peZY">勝ちパターン</th>
+          <th data-cid="lMfq78">NGパターン</th>
+        </tr>
+      </thead>
+      <tbody data-cid="2BFuGY">
+        <tr data-cid="ycrjnA">
+          <td data-cid="ZYWid3"><strong data-cid="O2NptU">第1層 フック</strong><br data-cid="FdXBB0">0〜2秒</td>
+          <td data-cid="CitkX8">指を止める</td>
+          <td data-cid="JMH6S3">ショック型・問いかけ型・ビフォーアフター型・ターゲット指定型・数字提示型</td>
+          <td data-cid="ma8CWL">黒背景スタート・無音・タイトル表示が遅い</td>
+        </tr>
+        <tr data-cid="ZTjuTr">
+          <td data-cid="Z3JjsJ"><strong data-cid="vwBM9g">第2層 リテンション</strong><br data-cid="A9yLFw">2〜20秒</td>
+          <td data-cid="iYqm4W">最後まで見せる</td>
+          <td data-cid="_yD5rE">3秒に1カット・テロップ二重化・起承転結・中盤の意外性</td>
+          <td data-cid="igITUG">情報過多・ワンカット棒立ち・結論が後半のみ</td>
+        </tr>
+        <tr data-cid="284kXN">
+          <td data-cid="QLFH03"><strong data-cid="8II6dC">第3層 アクション</strong><br data-cid="L70nPP">最後3〜5秒</td>
+          <td data-cid="dg472w">次の行動を誘発</td>
+          <td data-cid="QSFseL">「保存してね」「どっち派？」「プロフへ」「コメントで続き」</td>
+          <td data-cid="UV92cv">フェードアウトのみ・CTAなし</td>
+        </tr>
+      </tbody>
+    </table></div>
+
+    <h3 data-cid="IOkkhF">「余白設計」の重要性</h3>
+    <p data-cid="cAm_YU">
+      情報を全て説明しきらず、<strong data-cid="8KX9P_">あえて「モヤ」を残す</strong>ことで視聴者のコメント・DM・保存が誘発されます。
+      「完璧に説明する動画」より「少し気になりが残る動画」の方が数字が伸びる傾向があります。
+      <a class="inline_marker" href="#ref1" data-cid="hC0yCQ">1</a>
+    </p>
+  </div>
+
+  <!-- =============================================
+       SECTION 3: KEYWORDS
+  ============================================= -->
+  <div class="section" id="sec-keywords" data-cid="u5BC0w">
+    <h2 data-cid="8g6qSR"><span class="num" data-cid="9eqIVQ">調査 03</span>今伸びているキーワード・フック（AI×副業×自動化）</h2>
+    <p data-cid="KT-EIe">
+      30〜40代・AI興味・副業志望ターゲットに向けて、現在拡散力が高いキーワード群を分類します。
+      <a class="inline_marker" href="#ref2" data-cid="evxeUU">2</a><a class="inline_marker" href="#ref3" data-cid="KUI6O3">3</a>
+    </p>
+
+    <h3 data-cid="TmBq3z">冒頭フック用キーワード（指を止める）</h3>
+    <div class="hook-grid" data-cid="6ANzSW">
+      <div class="hook-row" data-cid="PXK47G">
+        <span class="hook-chip hot" data-cid="TJB0qA">月5万円を副業で</span>
+        <span class="hook-chip hot" data-cid="SxWLJk">作業5分で完結</span>
+        <span class="hook-chip hot" data-cid="rOAflb">顔出しなしで稼ぐ</span>
+        <span class="hook-chip hot" data-cid="CyLSgK">スキルゼロでも</span>
+      </div>
+      <div class="hook-row" data-cid="MFTFpI">
+        <span class="hook-chip" data-cid="x0TY-V">AIが全部やってくれる</span>
+        <span class="hook-chip" data-cid="WMfIHj">会社員のままでいい</span>
+        <span class="hook-chip" data-cid="tnp_Pw">30代から始めるAI副業</span>
+      </div>
+      <div class="hook-row" data-cid="lOKGCS">
+        <span class="hook-chip" data-cid="-bhJSq">サラリーマンが副業に使うべき</span>
+        <span class="hook-chip" data-cid="QBSu9-">知らないと損</span>
+        <span class="hook-chip" data-cid="yEyanx">もうやってる人だけ得する</span>
+      </div>
+    </div>
+
+    <h3 data-cid="Xct-rI">展開・価値提供用キーワード</h3>
+    <div class="hook-grid" data-cid="FMr9b7">
+      <div class="hook-row" data-cid="ckL5fC">
+        <span class="hook-chip green" data-cid="HeZtgj">ChatGPT</span>
+        <span class="hook-chip green" data-cid="MBafCR">Claude</span>
+        <span class="hook-chip green" data-cid="Nj9Km3">AI自動化</span>
+        <span class="hook-chip green" data-cid="NfNhpz">自動投稿</span>
+        <span class="hook-chip green" data-cid="ViVcOa">不労所得</span>
+      </div>
+      <div class="hook-row" data-cid="pOMAy3">
+        <span class="hook-chip green" data-cid="ovmvsC">副業初心者</span>
+        <span class="hook-chip green" data-cid="WzxrZb">時給ゼロの収入</span>
+        <span class="hook-chip green" data-cid="MIeQtG">Instagramで稼ぐ</span>
+        <span class="hook-chip green" data-cid="YuCKi0">SNS運用自動化</span>
+      </div>
+    </div>
+
+    <h3 data-cid="f039ly">CTA用キーワード（行動誘発）</h3>
+    <div class="hook-grid" data-cid="mPumVp">
+      <div class="hook-row" data-cid="7AMbOt">
+        <span class="hook-chip" data-cid="DM1JOR">保存必須</span>
+        <span class="hook-chip" data-cid="zbCf0v">「副業」とコメント</span>
+        <span class="hook-chip" data-cid="CpPZpb">プロフのリンクから</span>
+        <span class="hook-chip" data-cid="GH4nWU">詳細はDMで</span>
+      </div>
+    </div>
+
+    <h3 data-cid="c2Mkwc">7つの冒頭フックパターン（実績あり）<a class="inline_marker" href="#ref1" data-cid="0M11Y5">1</a></h3>
+    <div class="sk-doc-native-table-frame" data-scroll-left-active="false" data-scroll-right-active="false" data-scrolling="false" data-cid="9-k3Xr"><table data-cid="rHhGCz">
+      <thead data-cid="-UBF3W">
+        <tr data-cid="3yNuiP"><th data-cid="coU0ur">タイプ</th><th data-cid="HmxDeb">例文</th><th data-cid="eTWRNP">効果</th></tr>
+      </thead>
+      <tbody data-cid="4WepVG">
+        <tr data-cid="i1EW9-">
+          <td data-cid="O-1gRr">ショック型</td>
+          <td data-cid="syJdyV">「え、これまだ誰もやってないの？」</td>
+          <td data-cid="Y-Q-qr">強い好奇心・驚き喚起</td>
+        </tr>
+        <tr data-cid="Y08XUZ">
+          <td data-cid="lmfXfp">問いかけ型</td>
+          <td data-cid="gSA3H6">「副業で月5万って夢だと思ってませんか？」</td>
+          <td data-cid="bkCnNf">自己投影・視聴継続</td>
+        </tr>
+        <tr data-cid="Z_Az2R">
+          <td data-cid="NbMPd3">ターゲット指定型</td>
+          <td data-cid="dhTzYR">「これ30〜40代の会社員だけ見てください」</td>
+          <td data-cid="PFZqQY">セグメント強化・共感</td>
+        </tr>
+        <tr data-cid="eF3qWR">
+          <td data-cid="jIyShE">数字提示型</td>
+          <td data-cid="tQNjgd">「AIを使えば月収+5万は3ステップです」</td>
+          <td data-cid="9PBRcX">具体性・信頼感</td>
+        </tr>
+        <tr data-cid="YLpc7R">
+          <td data-cid="NiEhqh">ビフォーアフター型</td>
+          <td data-cid="dP4_Uy">「6ヶ月前：月0円 → 今：月8万円の副業収入」</td>
+          <td data-cid="uyw6__">変化・結果への期待</td>
+        </tr>
+        <tr data-cid="QL2SGv">
+          <td data-cid="2FogZn">禁止型</td>
+          <td data-cid="xIb_kO">「絶対に最後まで見ないでください」</td>
+          <td data-cid="4bGao_">逆張り・好奇心</td>
+        </tr>
+        <tr data-cid="VARRqr">
+          <td data-cid="iPHsSj">警告型</td>
+          <td data-cid="8SbxVw">「知らないと5年後に後悔します」</td>
+          <td data-cid="E_JXB1">損失回避・緊迫感</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- =============================================
+       SCRIPTS INTRO
+  ============================================= -->
+  <div class="section" id="sec-scripts-intro" style="background:#f4f5fb; border-color:#c5caf5;" data-cid="OGdL2k">
+    <h2 data-cid="bWVgKm"><span class="num" data-cid="VSoTgO">台本 04</span>30秒リール台本 3パターン — 概要</h2>
+    <p data-cid="AkrkDQ">
+      以下の3パターンはすべて<strong data-cid="Cx4wjt">約150〜180文字（30秒尺）</strong>で設計しています。
+      1カット約3〜4秒を目安に、<strong data-cid="cD1ije">テロップを画面に重ねて視覚と音声を二重化</strong>することで完視聴率を最大化します。
+    </p>
+    <div class="sk-doc-native-table-frame" data-scroll-left-active="false" data-scroll-right-active="false" data-scrolling="false" data-cid="RXkend"><table data-cid="CGGrvL">
+      <thead data-cid="zQ0oZl">
+        <tr data-cid="2_8BqM"><th data-cid="cAcxlz">パターン</th><th data-cid="kJ8-o1">構成法</th><th data-cid="vqDUvh">特徴・向いているケース</th></tr>
+      </thead>
+      <tbody data-cid="1fjr1a">
+        <tr data-cid="v4U875">
+          <td data-cid="lPXvhA"><strong data-cid="xAOy4N">Pattern 1</strong></td>
+          <td data-cid="D5mGpD">PREP法</td>
+          <td data-cid="oi8bti">結論先出しで論理的に納得させる。「なぜ？」を自然に解消できるため教育系に最適</td>
+        </tr>
+        <tr data-cid="UPtm4V">
+          <td data-cid="9ko7kt"><strong data-cid="Iojf2p">Pattern 2</strong></td>
+          <td data-cid="W59sgX">PASONA法</td>
+          <td data-cid="WRgcQZ">悩みから始まり解決策で終わる感情導線。共感・不安→希望の流れでDMシェアを誘発</td>
+        </tr>
+        <tr data-cid="hGv3hY">
+          <td data-cid="jndlT9"><strong data-cid="rPj6F4">Pattern 3</strong></td>
+          <td data-cid="mpQ8sO">フック型</td>
+          <td data-cid="0mzBPV">冒頭の衝撃で全視聴を強制。最速で行動させたい時・新規リーチ最大化に最適</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- =============================================
+       SCRIPT 1: PREP
+  ============================================= -->
+  <div class="script-card" id="sec-prep" data-cid="lMzQAf">
+    <div class="script-header" data-cid="5Qw4-B">
+      <div class="script-type-badge badge-prep" data-cid="io75-b">Pattern 1 / PREP構成</div>
+      <div class="script-title" data-cid="5UQ8PS">「AIで副業月5万は3ステップで実現できる」</div>
+      <div class="script-desc editor-empty-block" data-cid="RGAu1m">Point（結論）→ Reason（理由）→ Example（具体例）→ Point（再結論＋CTA）<br data-cid="NustFh">
+      論理的説得力が高く、保存・DM共有を誘発しやすい構成。教育系アカウント向け。</div>
+    </div>
+    <div class="script-body" data-cid="JtqvIV">
+
+      <div class="script-phase" data-cid="kMQsYy">
+        <div class="phase-label phase-hook" data-cid="Fsdp_5">Hook / Point <span class="phase-time" data-cid="dCx77Y">0〜3秒</span></div>
+        <div class="script-line hook-line" data-cid="p93wqK">
+          「AIを使えば、スキルゼロの30代でも副業で月5万を3ステップで出せます。」
+        </div>
+        <p class="script-note" data-cid="4vF3QX">テロップ：「スキルゼロ / 30代 / 月5万 / 3ステップ」を大きく表示。ターゲット指定＋数字提示の複合フック。</p>
+      </div>
+
+      <div class="script-phase" data-cid="wl_eS2">
+        <div class="phase-label phase-reason" data-cid="ImW-I6">Reason <span class="phase-time" data-cid="qGOtiY">3〜12秒</span></div>
+        <div class="script-line" data-cid="TGrcWc">
+          「なぜなら今のAIは、コンテンツ作成・投稿・DM返信を自動化できるから。」
+        </div>
+        <div class="script-line" data-cid="DXn5ZT">
+          「以前は1投稿に3時間かかっていた作業が、今は15分で終わります。」
+        </div>
+        <p class="script-note" data-cid="dYUVB9">3秒ごとにカット切り替え。「自動化」「15分」などテロップ強調。</p>
+      </div>
+
+      <div class="script-phase" data-cid="Edqf8I">
+        <div class="phase-label phase-example" data-cid="96GJPH">Example <span class="phase-time" data-cid="Jyjg9-">12〜24秒</span></div>
+        <div class="script-line" data-cid="b5TXeO">
+          「ステップ1：ChatGPTで台本を作る。ステップ2：AIで画像生成。ステップ3：自動スケジュール投稿。」
+        </div>
+        <div class="script-line" data-cid="m4NjH1">
+          「この3つで、毎月60本の投稿を半自動で回せるようになります。」
+        </div>
+        <p class="script-note" data-cid="uM20e6">箇条書き風テロップでステップを視覚化。テンポよく1ステップ約2秒。</p>
+      </div>
+
+      <div class="script-phase" data-cid="wcopDW">
+        <div class="phase-label phase-cta" data-cid="OJ5dyo">Point（再結論）+ CTA <span class="phase-time" data-cid="QSZwr6">24〜30秒</span></div>
+        <div class="script-line cta-line" data-cid="244VYf">
+          「副業はスキルじゃなく、AIの使い方で決まります。詳しくはプロフから。保存しておいてね。」
+        </div>
+        <p class="script-note" data-cid="KjX4x9">「保存」ワードで保存数を誘導。「プロフから」でプロフ訪問数を増やしアルゴリズムに加点。</p>
+      </div>
+
+      <div class="script-tips" data-cid="Cm5js4">
+        <div class="script-tips-title" data-cid="52VQqt">制作・演出メモ</div>
+        <ul data-cid="mtXJLe">
+          <li data-cid="ggGpf2">冒頭は自分の顔アップ or 数字を書いたホワイトボードから始めるとCTR向上</li>
+          <li data-cid="zW-jOs">BGMはテンション高めのトレンド曲（ビートに合わせてカット）</li>
+          <li data-cid="JHTIIO">テロップカラー：白文字＋黒縁取り、数字だけ黄色で強調</li>
+          <li data-cid="l0lFVt">「3ステップ」は画面下にステップインジケーターとして常時表示するとリテンション向上</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       SCRIPT 2: PASONA
+  ============================================= -->
+  <div class="script-card" id="sec-pasona" data-cid="jnL5dO">
+    <div class="script-header" data-cid="jRg_Hv">
+      <div class="script-type-badge badge-pasona" data-cid="ErDdzm">Pattern 2 / PASONA構成</div>
+      <div class="script-title" data-cid="OsOPm2">「副業で稼げない人がやっている、たった1つの間違い」</div>
+      <div class="script-desc editor-empty-block" data-cid="qQkVhh">Problem（問題）→ Affinity（共感）→ Solution（解決策）→ Offer（提案）→ Narrow（絞込）→ Action（行動）<br data-cid="7oVb2i">
+      感情の波を作り「自分ごと化」させる。悩みを抱えたターゲットへの訴求力が最大。</div>
+    </div>
+    <div class="script-body" data-cid="9EtxQ0">
+
+      <div class="script-phase" data-cid="tpkMxt">
+        <div class="phase-label phase-problem" data-cid="JnzRjj">Problem + Hook <span class="phase-time" data-cid="gn_bWo">0〜4秒</span></div>
+        <div class="script-line hook-line" data-cid="vktNNO">
+          「副業を始めたのに3ヶ月で諦めた人、実は全員同じミスをしています。」
+        </div>
+        <p class="script-note" data-cid="b7VoGV">ショック型フック。「諦めた人」「同じミス」で共感＋不安を同時喚起。</p>
+      </div>
+
+      <div class="script-phase" data-cid="nTjLAi">
+        <div class="phase-label phase-affinity" data-cid="YJMc45">Affinity（共感） <span class="phase-time" data-cid="MAe0MM">4〜10秒</span></div>
+        <div class="script-line" data-cid="KA3hct">
+          「時間がない、スキルがない、続けられない——わかります。私も1年間そこで止まっていました。」
+        </div>
+        <p class="script-note" data-cid="LlEY1S">ターゲットの「あるある」を言語化。感情的な共鳴を作るパート。少しテンポを落として共感を深める。</p>
+      </div>
+
+      <div class="script-phase" data-cid="f0DCAL">
+        <div class="phase-label phase-solution" data-cid="8LO4uB">Solution（解決策） <span class="phase-time" data-cid="He-ksI">10〜20秒</span></div>
+        <div class="script-line" data-cid="sqrrCF">
+          「そのミスは、『手作業でやろうとしていた』こと。答えはAIに全部任せること。」
+        </div>
+        <div class="script-line" data-cid="yJovO7">
+          「ChatGPTで台本、Canva AIで画像、Metaスケジューラーで投稿。全部自動化できます。」
+        </div>
+        <p class="script-note" data-cid="2vOcSX">ミスの正体を「一言」で断言。その後に解決ツール3つを高速で畳み掛ける。</p>
+      </div>
+
+      <div class="script-phase" data-cid="8jcJw2">
+        <div class="phase-label phase-narrow" data-cid="8IatIs">Offer + Narrow（絞込） <span class="phase-time" data-cid="r0BKTB">20〜26秒</span></div>
+        <div class="script-line" data-cid="lFcXuv">
+          「これ、本気でAI副業を始めたい30〜40代の人にしか教えたくない情報です。」
+        </div>
+        <p class="script-note" data-cid="g00ZjE">「絞り込み」で希少性と特別感を演出。ターゲット外を意図的に切ることでターゲットの没入感が上がる。</p>
+      </div>
+
+      <div class="script-phase" data-cid="gMq-x2">
+        <div class="phase-label phase-cta" data-cid="i71n8t">Action（行動） <span class="phase-time" data-cid="nDXfDw">26〜30秒</span></div>
+        <div class="script-line cta-line" data-cid="84DAVN">
+          「詳しい手順はプロフのリンクで無料公開中。まず保存して後で読んでください。」
+        </div>
+        <p class="script-note" data-cid="9fP1FL">「無料」「保存」「後で」3ワードで行動ハードルを最低化。DMシェアを誘発する共感型CTA。</p>
+      </div>
+
+      <div class="script-tips" data-cid="CJPlGa">
+        <div class="script-tips-title" data-cid="zIU4u-">制作・演出メモ</div>
+        <ul data-cid="S1_Gtk">
+          <li data-cid="r4uTKy">冒頭「副業を始めたのに」のセリフ中に顔をやや俯かせると共感演出になる</li>
+          <li data-cid="d5ogXl">Affinity部分はBGMを少し下げ、Solution部分でBGMを上げて「転換感」を演出</li>
+          <li data-cid="na6DhW">「全員同じミス」「全部自動化」のキーワードはテロップを赤と白で交互に強調</li>
+          <li data-cid="NQiJqs">「30〜40代」テキストを画面に大きく出すとターゲット自己認識を強化</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       SCRIPT 3: HOOK
+  ============================================= -->
+  <div class="script-card" id="sec-hook" data-cid="1MPMMk">
+    <div class="script-header" data-cid="o0_DI7">
+      <div class="script-type-badge badge-hook" data-cid="M19Mty">Pattern 3 / フック型</div>
+      <div class="script-title" data-cid="IPB4yG">「知らないと5年後に後悔する、AIで稼ぐ人と稼げない人の差」</div>
+      <div class="script-desc editor-empty-block" data-cid="NJ7iId">強烈フック → 高速バリュー提供 → 強制保存CTA<br data-cid="_Jbn0I">
+      最初の2秒で全視聴を確定させ、最短でフォロー・保存・DM共有を引き出す。新規リーチ最大化に最適。</div>
+    </div>
+    <div class="script-body" data-cid="d2jWFe">
+
+      <div class="script-phase" data-cid="wff5GI">
+        <div class="phase-label phase-hook" data-cid="gZrGP_">SUPER HOOK <span class="phase-time" data-cid="7h4gh3">0〜2秒</span></div>
+        <div class="script-line hook-line" data-cid="L92og1">
+          「知らないと5年後に後悔します。AIで稼げる人と稼げない人、差はたった1つだけです。」
+        </div>
+        <p class="script-note" data-cid="-STqWy">警告型＋数字型の複合フック。「1つだけ」で「答えを知りたい」という好奇心を最大化。断言口調で信頼感を演出。</p>
+      </div>
+
+      <div class="script-phase" data-cid="DfNKlK">
+        <div class="phase-label phase-body" data-cid="pfO4LI">高速バリュー <span class="phase-time" data-cid="3eGAEr">2〜22秒</span></div>
+        <div class="script-line" data-cid="TM8KF4">
+          「稼げない人：自分で作る。稼げる人：AIに作らせる。」
+        </div>
+        <div class="script-line" data-cid="WQEYaR">
+          「稼げない人：毎日投稿で消耗。稼げる人：週1作業で30本を自動投稿。」
+        </div>
+        <div class="script-line" data-cid="nXChkd">
+          「稼げない人：センスがないと無理と思ってる。稼げる人：センスはAIが補うと知ってる。」
+        </div>
+        <p class="script-note" data-cid="FyCqgF">「稼げない人 vs 稼げる人」の対比構成。3連打でリズム感を作り、テロップでビジュアル的に左右対比させると完視聴率が上がる。各行2〜3秒でテンポ良く。</p>
+      </div>
+
+      <div class="script-phase" data-cid="Spvubi">
+        <div class="phase-label phase-cta" data-cid="XmzU8Q">強制保存CTA <span class="phase-time" data-cid="PI24Hl">22〜30秒</span></div>
+        <div class="script-line cta-line" data-cid="gT5NhV">
+          「どっちになるかは今の選択次第。この動画、絶対に保存しておいてください。続きはプロフから。」
+        </div>
+        <p class="script-note" data-cid="eES_na">「絶対に」の強調で保存を強制。「どっちになるか」で視聴者に選択を迫り、自己決定感を促す。プロフ誘導でフォロー率向上。</p>
+      </div>
+
+      <div class="script-tips" data-cid="52OPaC">
+        <div class="script-tips-title" data-cid="rOXJcw">制作・演出メモ</div>
+        <ul data-cid="C43sZM">
+          <li data-cid="tsrseA">冒頭はカメラに向かって指差しアクションから始めると停止率が大きく上がる</li>
+          <li data-cid="NZbQ7Y">「稼げない人」と「稼げる人」は画面を左右に2分割するテロップレイアウトで視覚対比を作る</li>
+          <li data-cid="-BRubz">BGMは最初から最後まで高テンションを維持。音楽のビートに合わせてカットを切る</li>
+          <li data-cid="QD4Soa">「保存」のCTA時にテロップを点滅させると保存数が伸びる傾向あり</li>
+          <li data-cid="dAkGo7">最もDMシェアを誘発しやすいパターン。「これ友達に送りたい」と思わせる余白を意識する</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       SUMMARY: COMPARE
+  ============================================= -->
+  <div class="section" id="sec-compare" data-cid="OF-h9w">
+    <h2 data-cid="UHgON3"><span class="num" data-cid="SFSP4_">まとめ 08</span>3パターン比較 &amp; 使い分けガイド</h2>
+    <div class="sk-doc-native-table-frame" data-scroll-left-active="false" data-scroll-right-active="false" data-scrolling="false" data-cid="84Zy8G"><table data-cid="Rc7hZb">
+      <thead data-cid="9lDIHH">
+        <tr data-cid="jqel8-">
+          <th data-cid="46cWdv">パターン</th>
+          <th data-cid="Vw67Pn">強み</th>
+          <th data-cid="_a-VyD">最適な目的</th>
+          <th data-cid="USgPiT">DMシェア期待度</th>
+          <th data-cid="L6jPq9">保存期待度</th>
+        </tr>
+      </thead>
+      <tbody data-cid="jwSdng">
+        <tr data-cid="oP9dtm">
+          <td data-cid="-QGVBG"><strong data-cid="L5S7jY">PREP構成</strong></td>
+          <td data-cid="FKhO3l">論理的説得力・信頼構築</td>
+          <td data-cid="hs7H3s">教育系・フォロワー育成</td>
+          <td data-cid="LsipKl">中</td>
+          <td data-cid="6D4e8k">高</td>
+        </tr>
+        <tr data-cid="RZeHz6">
+          <td data-cid="La6nTu"><strong data-cid="sSOe3m">PASONA構成</strong></td>
+          <td data-cid="o7K1HW">感情共感・悩み解決</td>
+          <td data-cid="FlAxfz">コンバージョン・プロフ誘導</td>
+          <td data-cid="XdkJkO">高</td>
+          <td data-cid="de-mwP">中〜高</td>
+        </tr>
+        <tr data-cid="VNc3ry">
+          <td data-cid="uOCyoz"><strong data-cid="lIiOmR">フック型</strong></td>
+          <td data-cid="WLaRPf">拡散力・新規リーチ最大化</td>
+          <td data-cid="D2qLWH">バズ・フォロワー獲得</td>
+          <td data-cid="xLuLhb">最高</td>
+          <td data-cid="qCoM07">高</td>
+        </tr>
+      </tbody>
+    </table></div>
+    <h3 data-cid="TVQHF3">運用推奨ローテーション</h3>
+    <p data-cid="L6WOFa">
+      週3本投稿の場合、<strong data-cid="FECIz6">月：フック型（新規リーチ）→ 水：PASONA型（共感・シェア誘発）→ 金：PREP型（保存・信頼構築）</strong>
+      の順で回すと、3つのアルゴリズム指標（DMシェア・完視聴率・保存数）を同時に最大化できます。
+    </p>
+  </div>
+
+  <!-- =============================================
+       REFERENCES
+  ============================================= -->
+  <div class="section" id="sec-refs" data-cid="WF2IyA">
+    <div class="refs" data-cid="-AcCR4">
+      <h3 data-cid="nClJtj">参考情報</h3>
+      <ol data-cid="9TkA9s">
+        <li id="ref1" data-cid="i-S1hX">
+          TaTap「2026年最新版 Instagramリール徹底攻略！アルゴリズムとバズる作り方」(2026年4月) —
+          <a href="https://tatap.jp/knowledge/instagram-reel-185/" target="_blank" data-cid="wLVWAZ">https://tatap.jp/knowledge/instagram-reel-185/</a>
+        </li>
+        <li id="ref2" data-cid="7n4-bU">
+          cenleaf「Instagram集客をAIで自動化する方法｜リール企画から投稿まで」(2026年3月) —
+          <a href="https://cenleaf.com/blog/instagram-ai-marketing-2026/" target="_blank" data-cid="tpBO2I">https://cenleaf.com/blog/instagram-ai-marketing-2026/</a>
+        </li>
+        <li id="ref3" data-cid="nOtO9V">
+          note「2026年最新版 Instagram×AI副業で月5万円。顔出しなし・センスゼロでも勝てる」(2026年) —
+          <a href="https://note.com/kei_job/n/neab08abcdc1d" target="_blank" data-cid="gOk60j">https://note.com/kei_job/n/neab08abcdc1d</a>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+
+</body></html>
