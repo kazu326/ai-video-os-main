@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>競合動画分析プロンプト RAGライブラリ</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme="light"]{
+  --color-bg:#f7f6f2;--color-surface:#f9f8f5;--color-surface-2:#fbfbf9;
+  --color-surface-offset:#f3f0ec;--color-border:#d4d1ca;--color-divider:#dcd9d5;
+  --color-text:#28251d;--color-text-muted:#7a7974;--color-text-faint:#bab9b4;
+  --color-primary:#01696f;--color-primary-hover:#0c4e54;--color-primary-highlight:#cedcd8;
+  --color-success:#437a22;--color-success-highlight:#d4dfcc;
+  --color-gold:#d19900;--color-gold-highlight:#e9e0c6;
+  --color-orange:#da7101;--color-orange-highlight:#e7d7c4;
+  --color-blue:#006494;--color-blue-highlight:#c6d8e4;
+  --color-purple:#7a39bb;--color-purple-highlight:#dacfde;
+  --color-error:#a12c7b;--color-error-highlight:#e0ced7;
+  --shadow-sm:0 1px 2px oklch(0.2 0.01 80/0.06);
+  --shadow-md:0 4px 12px oklch(0.2 0.01 80/0.08);
+  --shadow-lg:0 12px 32px oklch(0.2 0.01 80/0.12);
+  --radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:1rem;--radius-full:9999px;
+  --transition:180ms cubic-bezier(0.16,1,0.3,1);
+  --font-body:'Satoshi',sans-serif;
+  --text-xs:clamp(0.75rem,0.7rem + 0.25vw,0.875rem);
+  --text-sm:clamp(0.875rem,0.8rem + 0.35vw,1rem);
+  --text-base:clamp(1rem,0.95rem + 0.25vw,1.125rem);
+  --text-lg:clamp(1.125rem,1rem + 0.75vw,1.5rem);
+  --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+  --space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;
+  --space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;
+  --space-12:3rem;--space-16:4rem;
+}
+[data-theme="dark"]{
+  --color-bg:#171614;--color-surface:#1c1b19;--color-surface-2:#201f1d;
+  --color-surface-offset:#22211f;--color-border:#393836;--color-divider:#262523;
+  --color-text:#cdccca;--color-text-muted:#797876;--color-text-faint:#5a5957;
+  --color-primary:#4f98a3;--color-primary-hover:#227f8b;--color-primary-highlight:#313b3b;
+  --color-success:#6daa45;--color-success-highlight:#3a4435;
+  --color-gold:#e8af34;--color-gold-highlight:#4d4332;
+  --color-orange:#fdab43;--color-orange-highlight:#564b3e;
+  --color-blue:#5591c7;--color-blue-highlight:#3a4550;
+  --color-purple:#a86fdf;--color-purple-highlight:#4e4652;
+  --color-error:#d163a7;--color-error-highlight:#4c3d46;
+  --shadow-sm:0 1px 2px oklch(0 0 0/0.2);
+  --shadow-md:0 4px 12px oklch(0 0 0/0.3);
+  --shadow-lg:0 12px 32px oklch(0 0 0/0.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{min-height:100dvh;font-family:var(--font-body);font-size:var(--text-base);
+  color:var(--color-text);background:var(--color-bg);line-height:1.6}
+a,button,[role="button"]{transition:color var(--transition),background var(--transition),
+  border-color var(--transition),box-shadow var(--transition)}
+button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+img{display:block;max-width:100%;height:auto}
+:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px;border-radius:var(--radius-sm)}
+
+/* Layout */
+.app{display:grid;grid-template-rows:auto 1fr;min-height:100dvh}
+.header{background:var(--color-surface);border-bottom:1px solid var(--color-border);
+  padding:var(--space-4) var(--space-6);display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;
+  box-shadow:var(--shadow-sm)}
+.logo{display:flex;align-items:center;gap:var(--space-3)}
+.logo-icon{width:36px;height:36px}
+.logo-text{font-size:var(--text-sm);font-weight:700;color:var(--color-text);line-height:1.2}
+.logo-sub{font-size:var(--text-xs);color:var(--color-text-muted);font-weight:400}
+.header-actions{display:flex;align-items:center;gap:var(--space-3)}
+.theme-toggle{padding:var(--space-2);border-radius:var(--radius-md);
+  color:var(--color-text-muted);background:var(--color-surface-offset)}
+.theme-toggle:hover{color:var(--color-text);background:var(--color-border)}
+
+.main{display:grid;grid-template-columns:280px 1fr;height:calc(100dvh - 64px);overflow:hidden}
+.sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);
+  overflow-y:auto;padding:var(--space-4)}
+.sidebar-section{margin-bottom:var(--space-6)}
+.sidebar-label{font-size:var(--text-xs);font-weight:700;color:var(--color-text-muted);
+  text-transform:uppercase;letter-spacing:0.08em;margin-bottom:var(--space-3);
+  padding:0 var(--space-2)}
+.nav-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);
+  border-radius:var(--radius-md);cursor:pointer;font-size:var(--text-sm);
+  color:var(--color-text-muted);transition:all var(--transition);width:100%;text-align:left;
+  border:none;background:none}
+.nav-item:hover{background:var(--color-surface-offset);color:var(--color-text)}
+.nav-item.active{background:var(--color-primary-highlight);color:var(--color-primary);font-weight:600}
+.nav-dot{width:8px;height:8px;border-radius:var(--radius-full);flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:var(--text-xs);padding:2px var(--space-2);
+  border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-text-faint)}
+
+.content{overflow-y:auto;padding:var(--space-8)}
+.content-inner{max-width:860px;margin:0 auto}
+
+/* Prompt Card */
+.prompt-section{display:none}
+.prompt-section.active{display:block}
+.section-header{margin-bottom:var(--space-8)}
+.layer-badge{display:inline-flex;align-items:center;gap:var(--space-2);
+  padding:var(--space-1) var(--space-4);border-radius:var(--radius-full);
+  font-size:var(--text-xs);font-weight:700;text-transform:uppercase;
+  letter-spacing:0.06em;margin-bottom:var(--space-4)}
+.section-title{font-size:var(--text-xl);font-weight:700;color:var(--color-text);
+  line-height:1.2;margin-bottom:var(--space-3)}
+.section-desc{color:var(--color-text-muted);font-size:var(--text-sm);max-width:65ch}
+
+.prompt-card{background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);overflow:hidden;margin-bottom:var(--space-6);
+  box-shadow:var(--shadow-sm)}
+.prompt-card-header{padding:var(--space-4) var(--space-5);
+  border-bottom:1px solid var(--color-divider);
+  display:flex;align-items:center;justify-content:space-between}
+.prompt-card-title{font-size:var(--text-sm);font-weight:600;color:var(--color-text)}
+.prompt-card-meta{font-size:var(--text-xs);color:var(--color-text-muted)}
+.prompt-body{padding:var(--space-5)}
+.prompt-label{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;
+  letter-spacing:0.06em;color:var(--color-text-muted);margin-bottom:var(--space-2)}
+.prompt-text{background:var(--color-bg);border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);padding:var(--space-4);font-size:var(--text-sm);
+  color:var(--color-text);line-height:1.7;white-space:pre-wrap;font-family:inherit;
+  position:relative}
+.copy-btn{position:absolute;top:var(--space-3);right:var(--space-3);
+  padding:var(--space-1) var(--space-3);background:var(--color-surface-2);
+  border:1px solid var(--color-border);border-radius:var(--radius-md);
+  font-size:var(--text-xs);color:var(--color-text-muted);cursor:pointer;
+  transition:all var(--transition)}
+.copy-btn:hover{background:var(--color-primary-highlight);color:var(--color-primary)}
+.copy-btn.copied{background:var(--color-success-highlight);color:var(--color-success)}
+
+.checkpoint-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-top:var(--space-4)}
+.checkpoint-item{background:var(--color-surface-2);border:1px solid var(--color-divider);
+  border-radius:var(--radius-lg);padding:var(--space-4)}
+.checkpoint-icon{font-size:1.25rem;margin-bottom:var(--space-2)}
+.checkpoint-title{font-size:var(--text-xs);font-weight:700;color:var(--color-text);
+  margin-bottom:var(--space-1)}
+.checkpoint-desc{font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.5}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-4)}
+.tag{padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);
+  font-size:var(--text-xs);font-weight:600}
+
+.tip-box{background:var(--color-primary-highlight);border:1px solid var(--color-primary);
+  border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);margin-top:var(--space-4);
+  font-size:var(--text-sm);color:var(--color-primary)}
+.tip-box strong{font-weight:700}
+
+.full-prompt-card{background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-md)}
+.full-prompt-header{padding:var(--space-5) var(--space-6);
+  background:linear-gradient(135deg,var(--color-primary-highlight),var(--color-surface));
+  border-bottom:1px solid var(--color-border);
+  display:flex;align-items:center;justify-content:space-between}
+.full-prompt-title{font-size:var(--text-lg);font-weight:700;color:var(--color-text)}
+.btn-copy-all{display:flex;align-items:center;gap:var(--space-2);
+  padding:var(--space-2) var(--space-5);background:var(--color-primary);
+  color:white;border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:600;
+  cursor:pointer;transition:all var(--transition)}
+.btn-copy-all:hover{background:var(--color-primary-hover)}
+.full-prompt-body{padding:var(--space-6);font-size:var(--text-sm);
+  color:var(--color-text);line-height:1.7;white-space:pre-wrap;
+  font-family:inherit;overflow-x:auto}
+
+@media(max-width:768px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{display:none}
+  .content{padding:var(--space-4)}
+  .checkpoint-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <svg class="logo-icon" viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="8" fill="var(--color-primary)"/>
+      <path d="M8 18L14 12L20 18L14 24Z" fill="white" opacity="0.9"/>
+      <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.5"/>
+    </svg>
+    <div>
+      <div class="logo-text">競合動画分析 RAGプロンプト</div>
+      <div class="logo-sub">6レイヤー分析フレームワーク</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="theme-toggle" data-theme-toggle aria-label="テーマ切替">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="main">
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">分析レイヤー</div>
+    <button class="nav-item active" onclick="showSection('layer1')">
+      <span class="nav-dot" style="background:var(--color-error)"></span>
+      ①ターゲット感情
+      <span class="nav-badge">動機</span>
+    </button>
+    <button class="nav-item" onclick="showSection('layer2')">
+      <span class="nav-dot" style="background:var(--color-orange)"></span>
+      ②フック
+      <span class="nav-badge">3秒</span>
+    </button>
+    <button class="nav-item" onclick="showSection('layer3')">
+      <span class="nav-dot" style="background:var(--color-gold)"></span>
+      ③ベネフィット
+      <span class="nav-badge">4-10秒</span>
+    </button>
+    <button class="nav-item" onclick="showSection('layer4')">
+      <span class="nav-dot" style="background:var(--color-success)"></span>
+      ④ループ設計
+      <span class="nav-badge">滞在時間</span>
+    </button>
+    <button class="nav-item" onclick="showSection('layer5')">
+      <span class="nav-dot" style="background:var(--color-blue)"></span>
+      ⑤CTA
+      <span class="nav-badge">出口</span>
+    </button>
+    <button class="nav-item" onclick="showSection('layer6')">
+      <span class="nav-dot" style="background:var(--color-purple)"></span>
+      ⑥アルゴリズム設計
+      <span class="nav-badge">2026</span>
+    </button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">統合プロンプト</div>
+    <button class="nav-item" onclick="showSection('full')">
+      <span class="nav-dot" style="background:var(--color-primary)"></span>
+      完全版RAGプロンプト
+    </button>
+  </div>
+</nav>
+
+<!-- Content -->
+<main class="content">
+<div class="content-inner">
+
+<!-- Layer 1 -->
+<section class="prompt-section active" id="layer1">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-error-highlight);color:var(--color-error)">Layer 01 · 動機分析</div>
+    <h1 class="section-title">ターゲットの感情（動機）</h1>
+    <p class="section-desc">どんな「不満・理想」を持つ人に向けた動画か？視聴者の心理的ドライバーを解剖する。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画（または台本）を分析して、レイヤー①「ターゲット感情・動機」を抽出してください。
+
+【分析対象】
+{動画URL または 台本テキストを貼り付け}
+
+【抽出する項目】
+1. ターゲットが抱えている「不満・痛み・悩み」を具体的に3つ
+2. ターゲットが描いている「理想の状態・なりたい姿」を具体的に2つ
+3. この動画が刺激している感情（例：焦り・羨望・安心・好奇心）を1〜2語で
+4. ターゲット像（年齢層・属性・状況）を1〜2文で
+
+【出力形式】
+- 不満①：
+- 不満②：
+- 不満③：
+- 理想①：
+- 理想②：
+- 刺激感情：
+- ターゲット像：
+- 一言サマリー：「〇〇な人が△△を求めて見る動画」<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+      <div class="tag-row">
+        <span class="tag" style="background:var(--color-error-highlight);color:var(--color-error)">ターゲット設計</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">感情マッピング</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">ペルソナ抽出</span>
+      </div>
+    </div>
+  </div>
+  <div class="checkpoint-grid">
+    <div class="checkpoint-item">
+      <div class="checkpoint-icon">😤</div>
+      <div class="checkpoint-title">不満の確認</div>
+      <div class="checkpoint-desc">「〇〇できない」「〇〇で困っている」という具体的な苦痛を探す</div>
+    </div>
+    <div class="checkpoint-item">
+      <div class="checkpoint-icon">✨</div>
+      <div class="checkpoint-title">理想の確認</div>
+      <div class="checkpoint-desc">「〇〇になりたい」「〇〇が欲しい」という具体的なゴールを探す</div>
+    </div>
+  </div>
+</section>
+
+<!-- Layer 2 -->
+<section class="prompt-section" id="layer2">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-orange-highlight);color:var(--color-orange)">Layer 02 · フック分析</div>
+    <h1 class="section-title">フック（最初の3秒）</h1>
+    <p class="section-desc">スクロールを止めた「ワード×映像×カット密度」の解剖。2秒で3〜4カットが脳を釘付けにする。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画の冒頭3秒（フック部分）を分析してください。
+
+【分析対象】
+{動画URL または 台本・映像メモを貼り付け}
+
+【抽出する項目】
+1. フックワード：最初に発せられる言葉（セリフ）を一字一句書き出す
+2. 映像インパクト：最初に映る映像の内容（何が映っているか）
+3. カット密度：最初の2秒間のカット数（映像カット / テロップ出現 / エフェクト音をそれぞれカウント）
+4. テキストオーバーレイ：画面に表示される文字テロップの内容と出現タイミング
+5. フックの種類：以下から選択
+   [ ] 問いかけ型（「〇〇していませんか？」）
+   [ ] 衝撃事実型（「実は〇〇だった」）
+   [ ] 共感型（「〇〇な人あるある」）
+   [ ] 宣言型（「〇〇だけで〇〇できる方法」）
+   [ ] 禁止型（「絶対やっちゃダメな〇〇」）
+
+【出力形式】
+- フックワード：
+- 映像インパクト：
+- カット密度（2秒）：映像カット_回 / テロップ出現_回 / SE・効果音_回
+- テロップ内容：
+- フック種類：
+- スクロール停止の決め手（推定）：<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+      <div class="tag-row">
+        <span class="tag" style="background:var(--color-orange-highlight);color:var(--color-orange)">カット密度</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">フック種類</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">テロップ分析</span>
+      </div>
+    </div>
+  </div>
+  <div class="tip-box">
+    <strong>🎯 プロの着眼点：</strong>バズ動画の多くは冒頭2秒に映像カット・テロップ・SE音が3〜4つ重なる。「速さ」だけでなく感情の緊張→緩和リズムも確認すること。
+  </div>
+</section>
+
+<!-- Layer 3 -->
+<section class="prompt-section" id="layer3">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-gold-highlight);color:var(--color-gold)">Layer 03 · ベネフィット分析</div>
+    <h1 class="section-title">ベネフィット（4〜10秒）</h1>
+    <p class="section-desc">「最後まで見ると何が手に入るか」の約束。ここで視聴継続か離脱かが決まる。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画の4〜10秒部分（ベネフィット提示部分）を分析してください。
+
+【分析対象】
+{動画URL または 台本テキストを貼り付け}
+
+【抽出する項目】
+1. ベネフィット宣言：「最後まで見ると〇〇が手に入る」という約束を一文で
+2. 提示方法：
+   [ ] 数字で具体化（「3つのコツ」「1分で」「10万円」）
+   [ ] 結果で提示（「〇〇が△△になった」）
+   [ ] 比較で提示（「普通の方法 vs この方法」）
+   [ ] 共感で提示（「同じ悩みを持つ人へ」）
+3. 視聴を続けさせる「引き」：なぜここで離脱せず続きを見たくなるか
+4. 信頼担保：実績・数字・証拠はあるか（あれば内容）
+
+【出力形式】
+- ベネフィット宣言：
+- 提示方法：
+- 続きを見たくなる理由：
+- 信頼担保：
+- 改善提案（もっとベネフィットを強化するなら）：<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- Layer 4 -->
+<section class="prompt-section" id="layer4">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-success-highlight);color:var(--color-success)">Layer 04 · ループ設計分析</div>
+    <h1 class="section-title">ループ設計（11〜25秒）</h1>
+    <p class="section-desc">ユーザーを何度も再生させる仕掛け。未回収の問い・視覚ループ・意味ループの3種を解剖。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画のループ設計（11〜25秒・リピート再生誘発要素）を分析してください。
+
+【分析対象】
+{動画URL または 台本テキストを貼り付け}
+
+【抽出する項目】
+1. 未回収の問い：動画内で「え、これどういうこと？」と思わせる未解決の謎があるか
+2. 意味ループ：最後のセリフ→冒頭のセリフに自然に繋がる構造があるか
+   （例：最後「その方法は…」→冒頭「ChatGPTの設定です！」）
+3. 視覚ループ：映像の最後フレームが冒頭フレームと繋がる（シームレスに見える）か
+4. 情報出し惜しみ：見ている最中に「もっと知りたい」と思わせる情報の引っ張り方
+5. ループ種別チェック：
+   [ ] テキストループ（文字が消えかけ→最初に繋がる）
+   [ ] 音声ループ（BGMがシームレス）
+   [ ] 意味ループ（問いと答えが循環）
+   [ ] 未回収ループ（謎を最後まで回収しない）
+
+【出力形式】
+- 未回収の問い（あれば）：
+- 意味ループの構造：
+- 視覚ループ：あり / なし
+- 情報出し惜しみ手法：
+- ループ種別（該当するもの）：
+- リピート再生が起きやすいポイント（推定）：<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+      <div class="tag-row">
+        <span class="tag" style="background:var(--color-success-highlight);color:var(--color-success)">意味ループ</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">未回収の問い</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">リピート設計</span>
+      </div>
+    </div>
+  </div>
+  <div class="tip-box">
+    <strong>🔄 プロの着眼点：</strong>「最後のセリフが冒頭に繋がる」構造は2026年4月のMetaアルゴリズム更新で正式にリピート再生率評価対象に。同じ視聴者の2回再生は1回より高くリーチが拡大する。
+  </div>
+</section>
+
+<!-- Layer 5 -->
+<section class="prompt-section" id="layer5">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-blue-highlight);color:var(--color-blue)">Layer 05 · CTA分析</div>
+    <h1 class="section-title">行動喚起（CTA）</h1>
+    <p class="section-desc">最後にユーザーに何をさせようとしているか。CTA種別×強度×タイミングで解剖。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画のCTA（行動喚起）を分析してください。
+
+【分析対象】
+{動画URL または 台本テキストを貼り付け}
+
+【抽出する項目】
+1. CTAの内容：何をするよう促しているか（セリフ・テロップ全文）
+2. CTA種別と強度：
+   【アルゴリズム貢献度】
+   - DMシェア　→ 貢献度：最高 / 難易度：中
+   - 保存       → 貢献度：高   / 難易度：中
+   - コメント   → 貢献度：高   / 難易度：中
+   - フォロー   → 貢献度：中   / 難易度：高
+   - いいね     → 貢献度：低   / 難易度：低
+3. CTA出現タイミング：何秒頃か
+4. CTA設計の巧みさ：なぜユーザーがその行動を取りたくなるか（心理的理由）
+5. 感情的CTA vs 論理的CTA：どちらで訴求しているか
+
+【出力形式】
+- CTA内容：
+- CTA種別：
+- アルゴリズム貢献度：
+- 出現タイミング：
+- 行動を促す心理：
+- 改善提案（より高貢献なCTAに変えるなら）：<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- Layer 6 -->
+<section class="prompt-section" id="layer6">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-purple-highlight);color:var(--color-purple)">Layer 06 · アルゴリズム設計</div>
+    <h1 class="section-title">アルゴリズム設計（2026最新）</h1>
+    <p class="section-desc">冒頭の情報密度・完視聴設計・DMシェア誘発。「1回見ただけでは処理しきれない」を意図的に作る。</p>
+  </div>
+  <div class="prompt-card">
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">📋 分析プロンプト</span>
+      <span class="prompt-card-meta">RAG用 · コピーして使用</span>
+    </div>
+    <div class="prompt-body">
+      <div class="prompt-label">プロンプトテキスト</div>
+      <div class="prompt-text">以下の動画のアルゴリズム最適化設計（2026年Meta評価基準）を分析してください。
+
+【分析対象】
+{動画URL または 台本・映像メモを貼り付け}
+
+【抽出する項目】
+1. 冒頭情報密度チェック（0〜3秒）：以下の何個が同時に重なっているか
+   [ ] 音声（セリフ）が流れている
+   [ ] テロップが同時に動いている（スライドイン・フラッシュ等）
+   [ ] 背景が動いている（静止画でない）
+   [ ] SE・効果音が入っている
+   [ ] テロップの動きが話速と微妙にズレている（認知負荷を生む）
+   → 重複数：__/5（4以上でループ誘発設計と判定）
+
+2. 完視聴設計の確認：
+   - ペース配分：情報量が均等か、後半に向かって加速するか
+   - 完視聴への誘導：「最後まで見た人だけに教える〇〇」等の引きがあるか
+
+3. DMシェア誘発設計：
+   - シェアしたくなる感情：「友達に送りたい」と思わせる要素があるか
+   - 「これ〇〇に送る」を誘発するワード・内容があるか
+
+4. スキップ率対策：
+   - 飽きさせないテンポ設計はあるか（情報の波・緩急）
+
+【出力形式】
+- 冒頭情報密度スコア：__/5
+- 完視聴設計の評価：
+- DMシェア誘発要素：
+- スキップ率対策：
+- アルゴリズム評価予測（高 / 中 / 低）：
+- 改善提案（情報密度を上げるなら）：<button class="copy-btn" onclick="copyPrompt(this)">コピー</button></div>
+      <div class="tag-row">
+        <span class="tag" style="background:var(--color-purple-highlight);color:var(--color-purple)">情報密度</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">完視聴率</span>
+        <span class="tag" style="background:var(--color-surface-offset);color:var(--color-text-muted)">DMシェア設計</span>
+      </div>
+    </div>
+  </div>
+  <div class="tip-box">
+    <strong>🧠 プロの着眼点：</strong>「1回では脳が処理しきれない」状態を意図的に作ると無意識ループが発動。14秒の動画を2回見た場合、60秒を1回見た動画よりMetaアルゴリズムが高く評価する（2026年5月観測）。
+  </div>
+</section>
+
+<!-- Full Prompt -->
+<section class="prompt-section" id="full">
+  <div class="section-header">
+    <div class="layer-badge" style="background:var(--color-primary-highlight);color:var(--color-primary)">完全版 · RAGプロンプト</div>
+    <h1 class="section-title">6レイヤー統合分析プロンプト</h1>
+    <p class="section-desc">1つのプロンプトで6レイヤーすべてを一括分析。AIに貼り付けるだけで完全な競合分析レポートが生成される。</p>
+  </div>
+  <div class="full-prompt-card">
+    <div class="full-prompt-header">
+      <span class="full-prompt-title">🚀 完全版プロンプト（コピーしてAIへ）</span>
+      <button class="btn-copy-all" onclick="copyFullPrompt()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        全文コピー
+      </button>
+    </div>
+    <div class="full-prompt-body" id="fullPromptText">以下の競合動画を「6レイヤー分析フレームワーク」で完全に解剖してください。
+
+【分析対象】
+{動画URL または 台本テキスト・映像メモを貼り付け}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ① ターゲットの感情（動機）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を抽出してください。
+- ターゲットの不満・痛み・悩み（具体的に3つ）
+- ターゲットの理想・なりたい姿（具体的に2つ）
+- この動画が刺激している感情（1〜2語）
+- ターゲット像（年齢層・属性・状況）
+- 一言サマリー：「〇〇な人が△△を求めて見る動画」
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ② フック（最初の3秒）— 言葉×映像×カット密度
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を抽出してください。
+- フックワード（最初のセリフを一字一句）
+- 映像インパクト（最初に映るもの）
+- カット密度（2秒間）：映像カット_回 / テロップ出現_回 / SE・効果音_回
+- テキストオーバーレイの内容
+- フック種類：問いかけ型 / 衝撃事実型 / 共感型 / 宣言型 / 禁止型
+- スクロール停止の決め手（推定）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ③ ベネフィット（4〜10秒）— 解決策・視聴継続の約束
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を抽出してください。
+- ベネフィット宣言（「最後まで見ると〇〇が手に入る」を一文で）
+- 提示方法：数字化 / 結果提示 / 比較提示 / 共感提示
+- 続きを見たくなる理由
+- 信頼担保（実績・数字・証拠があれば）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ④ ループ設計（11〜25秒）— 滞在時間・リピート再生
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を抽出してください。
+- 未回収の問い（「え、これどういうこと？」を誘発する謎）
+- 意味ループの構造（最後→冒頭への接続）
+- 視覚ループ（最終フレーム→冒頭フレームの繋がり）
+- 情報出し惜しみ手法
+- ループ種別：テキストループ / 音声ループ / 意味ループ / 未回収ループ
+- リピート再生が起きやすいポイント
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ⑤ CTA（行動喚起）— 出口設計
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を抽出してください。
+- CTA内容（セリフ・テロップ全文）
+- CTA種別とアルゴリズム貢献度：
+  DMシェア（最高）/ 保存（高）/ コメント（高）/ フォロー（中）/ いいね（低）
+- 出現タイミング（秒）
+- 行動を促す心理的理由
+- 改善提案（より高貢献CTAへの変更案）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER ⑥ アルゴリズム設計（2026年Meta評価基準）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下を評価してください。
+- 冒頭情報密度スコア（0〜3秒）：以下の重複数 __/5
+  □ 音声（セリフ）  □ テロップが動いている  □ 背景が動いている
+  □ SE・効果音  □ テロップと音声のタイミングがズレている
+- 完視聴設計（ペース配分・最後まで見させる仕掛け）
+- DMシェア誘発設計（「友達に送りたい」要素）
+- スキップ率対策（情報の波・緩急設計）
+- アルゴリズム評価予測：高 / 中 / 低
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+総合評価と改善提案
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+上記6レイヤーの分析を踏まえて：
+1. この動画の最大の強み（1〜2つ）
+2. 最も改善すべき弱点（1〜2つ）
+3. このフレームワークを使って自社動画を作るなら何を真似すべきか（具体的なモジュール）
+    </div>
+  </div>
+</section>
+
+</div>
+</main>
+</div>
+</div>
+
+<script>
+function showSection(id){
+  document.querySelectorAll('.prompt-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function copyPrompt(btn){
+  const text = btn.parentElement.textContent.replace('コピー','').trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✓ コピー済';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='コピー';btn.classList.remove('copied')},2000);
+  });
+}
+
+function copyFullPrompt(){
+  const text = document.getElementById('fullPromptText').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('.btn-copy-all');
+    btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> コピー済！';
+    setTimeout(()=>{btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 全文コピー'},2000);
+  });
+}
+
+// Theme toggle
+(function(){
+  const t=document.querySelector('[data-theme-toggle]'),r=document.documentElement;
+  let d='dark';
+  t&&t.addEventListener('click',()=>{
+    d=d==='dark'?'light':'dark';
+    r.setAttribute('data-theme',d);
+    t.innerHTML=d==='dark'
+      ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+      :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  });
+})();
+</script>
+</body>
+</html>
